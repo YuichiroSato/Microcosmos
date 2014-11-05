@@ -11,7 +11,7 @@ object Microcosmos extends JFrame with Runnable {
   val fieldWidth = 400
   val fieldHeight = 400
   val field = new Field(fieldWidth, fieldHeight)
-  var world = new World(0,0)
+  var world = World.init(fieldWidth, fieldHeight)
 
   def main(args: Array[String]): Unit = {
     init()
@@ -30,7 +30,7 @@ object Microcosmos extends JFrame with Runnable {
     while(true) {
       world = world.update;
       this.repaint()
-      Thread.sleep(100)
+      Thread.sleep(1000)
     }
   }
   
@@ -39,7 +39,5 @@ object Microcosmos extends JFrame with Runnable {
     g.fillRect(0, 0, fieldWidth, fieldHeight)
     
     field.paintWorld(world, g)
-    field.setVisible(true)
   }
-
 }

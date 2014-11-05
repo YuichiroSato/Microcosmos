@@ -1,5 +1,5 @@
 package jp.satoyuichiro.microcosmos.model.bio
 
-class Plant extends Bio {
+case class Plant(override val x: Int, override val y: Int) extends Bio(x, y) {
 
 }
