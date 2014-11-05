@@ -5,6 +5,7 @@ import jp.satoyuichiro.microcosmos.view.Field
 import java.awt.Graphics
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
+import java.awt.Toolkit
 
 object Microcosmos extends JFrame with Runnable {
 
@@ -29,15 +30,24 @@ object Microcosmos extends JFrame with Runnable {
   def run() {
     while(true) {
       world = world.update;
-      this.repaint()
-      Thread.sleep(1000)
+      render()
+      Thread.sleep(100)
     }
   }
   
-  override def paint(g: Graphics): Unit = {
-    g.setColor(Color.WHITE)
-    g.fillRect(0, 0, fieldWidth, fieldHeight)
+  def render(): Unit = {
+    val bufferStrategy = this.getBufferStrategy()
+    if (bufferStrategy == null) {
+        this.createBufferStrategy(3)
+        return
+    }
     
-    field.paintWorld(world, g)
+	val buf = bufferStrategy.getDrawGraphics()
+    buf.setColor(Color.WHITE)
+    buf.fillRect(0, 0, fieldWidth, fieldHeight)
+    
+    field.paintWorld(world, buf)
+    buf.dispose()
+    bufferStrategy.show()
   }
 }

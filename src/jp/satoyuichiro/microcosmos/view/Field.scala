@@ -12,7 +12,7 @@ import jp.satoyuichiro.microcosmos.model.bio.Plant
 import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 import jp.satoyuichiro.microcosmos.model.bio.Herbivore
 
-class Field(width: Int, height: Int) extends JPanel(true) {
+class Field(width: Int, height: Int) extends JPanel {
 
   this.setBackground(Color.WHITE)
   
