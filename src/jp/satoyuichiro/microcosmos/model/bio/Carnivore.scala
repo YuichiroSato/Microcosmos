@@ -1,6 +1,24 @@
 package jp.satoyuichiro.microcosmos.model.bio
 
-case class Carnivore(override val coordinates: Coordinates, override val appearance: Appearance) extends Animal(coordinates, appearance) {
+import jp.satoyuichiro.microcosmos.model.World
+import java.awt.Color
 
-  def update: Bio = new Carnivore(Coordinates(coordinates.x + 10, coordinates.y, coordinates.angle), appearance)
+case class Carnivore(override val coordinates: Coordinates, override val appearance: Appearance, override val velocity: Velocity) extends Animal(coordinates, appearance, velocity) {
+
+  def update(world: World): Bio = Carnivore(move, appearance, velocity)
+  
+//  def move: Animal = {
+//    val newCoordinates = Coordinates((coordinates.x + velocity.vx).toInt, (coordinates.y + velocity.vy).toInt, coordinates.angle)
+//    Carnivore(newCoordinates, appearance, velocity)
+//  }
+}
+
+object Carnivore {
+  
+  def apply(x: Int, y: Int): Carnivore = {
+    val coordinates = Coordinates(x,y, 0.0)
+    val appearance = Appearance(10, Color.RED)
+    val velocity = Velocity(10 * Math.random(), 0.1)
+    Carnivore(coordinates, appearance, velocity)
+  }
 }
