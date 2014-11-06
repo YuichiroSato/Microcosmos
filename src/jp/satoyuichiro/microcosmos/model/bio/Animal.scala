@@ -8,6 +8,8 @@ abstract class Animal(override val coordinates: Coordinates, override val appear
     val angle = coordinates.angle + velocity.rotation
     Coordinates(x.toInt, y.toInt, angle)
   }
+  
+  def propel(dv: Double, dtheta: Double): Velocity = Velocity(velocity.speed + dv, velocity.rotation + dtheta)
 }
 
 case class Velocity(val speed: Double, val rotation: Double)

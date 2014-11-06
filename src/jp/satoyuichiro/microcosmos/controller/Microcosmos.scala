@@ -31,7 +31,7 @@ object Microcosmos extends JFrame with Runnable {
     while(true) {
       world = world.update;
       render()
-      Thread.sleep(500)
+      Thread.sleep(25)
     }
   }
   

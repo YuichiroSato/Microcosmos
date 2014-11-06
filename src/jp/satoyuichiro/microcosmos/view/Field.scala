@@ -18,11 +18,7 @@ class Field(width: Int, height: Int) extends JPanel {
   this.setBackground(Color.WHITE)
   
   def paintWorld(world: World, g: Graphics): Unit = {
-    world.cells foreach {
-      cellarray => cellarray foreach {
-        cell => paintCell(cell, g)
-      }
-    }
+    paintBios(world.getBios, g)
   }
   
   def paintCell(cell: Cell, g: Graphics): Unit = {

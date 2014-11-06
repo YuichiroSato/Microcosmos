@@ -13,12 +13,33 @@ import java.awt.Color
 case class World(val cells: Array[Array[Cell]], val width: Int, val height: Int) {
 
   def update: World = {
-    val bios = getBios map (_.update(this))
+    val bios = getBios map (_.update(this)) map applyBoundaryCondition
     World(bios, width, height)
   }
   
   def getBios: List[Bio] = {
     cells.toList flatMap (_.toList flatMap (_.bios))
+  }
+  
+
+  def applyBoundaryCondition(bio: Bio): Bio = {
+    bio match {
+      case plant: Plant => plant
+      case carn: Carnivore => Carnivore(boundaryCondition(carn.coordinates), carn.appearance, carn.velocity)
+      case herb: Herbivore => Herbivore(boundaryCondition(herb.coordinates), herb.appearance, herb.velocity)
+    }
+  }
+  
+  def boundaryCondition(coordinates: Coordinates): Coordinates = {
+    var x = coordinates.x
+    var y = coordinates.y
+    
+    if (x < 0) x += width - 1
+    if (y < 0) y += height - 1
+    if (width <= x) x -= width + 1
+    if (height <= y) y -= height + 1
+    
+    Coordinates(x, y, coordinates.angle)
   }
 }
 
@@ -54,9 +75,9 @@ object Cell {
   
   def init(x: Int, y: Int): Cell = {
     val bios = Math.random match {
-      case i if i < 0.001 => List(new Plant(Coordinates(x,y, 0.0), Appearance(10, Color.GREEN)))
-      case i if 0.001 < i && i < 0.0012 => List(Carnivore(x,y))
-      case i if 0.0012 < i && i < 0.0017 => List(Herbivore(x,y))
+      case i if i < 0.0003 => List(new Plant(Coordinates(x,y, 0.0), Appearance(10, Color.GREEN)))
+      case i if 0.0003 < i && i < 0.00035 => List(Carnivore(x,y))
+      case i if 0.00035 < i && i < 0.00045 => List(Herbivore(x,y))
       case _ => List.empty[Bio]
     }
     Cell((new Water(), new Mineral()), bios)
