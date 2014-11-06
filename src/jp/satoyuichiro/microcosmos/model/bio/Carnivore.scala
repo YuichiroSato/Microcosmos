@@ -1,5 +1,6 @@
 package jp.satoyuichiro.microcosmos.model.bio
 
-case class Carnivore(override val x: Int, override val y: Int) extends Animal(x, y) {
+case class Carnivore(override val coordinates: Coordinates, override val appearance: Appearance) extends Animal(coordinates, appearance) {
 
+  def update: Bio = new Carnivore(Coordinates(coordinates.x + 10, coordinates.y, coordinates.angle), appearance)
 }

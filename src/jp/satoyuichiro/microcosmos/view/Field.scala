@@ -44,17 +44,17 @@ class Field(width: Int, height: Int) extends JPanel {
   }
   
   def paintPlant(plant: Plant, g: Graphics): Unit = {
-    g.setColor(Color.GREEN)
-    g.fillOval(plant.x, plant.y, 10, 10)
+    g.setColor(plant.appearance.color)
+    g.fillOval(plant.coordinates.x, plant.coordinates.y, plant.appearance.size, plant.appearance.size)
   }
   
   def paintCarnivore(carnivore: Carnivore, g: Graphics): Unit = {
-    g.setColor(Color.RED)
-    g.fillRect(carnivore.x, carnivore.y, 10, 10)
+    g.setColor(carnivore.appearance.color)
+    g.fillRect(carnivore.coordinates.x, carnivore.coordinates.y, carnivore.appearance.size, carnivore.appearance.size)
   }
   
   def paintHerbivore(herbivore: Herbivore, g: Graphics): Unit = {
-    g.setColor(Color.BLUE)
-    g.fillRect(herbivore.x, herbivore.y, 10, 10)
+    g.setColor(herbivore.appearance.color)
+    g.fillRect(herbivore.coordinates.x, herbivore.coordinates.y, herbivore.appearance.size, herbivore.appearance.size)
   }
 }

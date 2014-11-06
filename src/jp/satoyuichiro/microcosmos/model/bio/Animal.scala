@@ -1,5 +1,5 @@
 package jp.satoyuichiro.microcosmos.model.bio
 
-class Animal(override val x: Int, override val y: Int) extends Bio(x, y){
+abstract class Animal(override val coordinates: Coordinates, override val appearance: Appearance) extends Bio(coordinates, appearance){
 
 }

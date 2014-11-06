@@ -1,5 +1,6 @@
 package jp.satoyuichiro.microcosmos.model.bio
 
-case class Plant(override val x: Int, override val y: Int) extends Bio(x, y) {
+case class Plant(override val coordinates: Coordinates, override val appearance: Appearance) extends Bio(coordinates, appearance) {
 
+  def update: Bio = this
 }
