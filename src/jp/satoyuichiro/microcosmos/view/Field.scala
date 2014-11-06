@@ -11,6 +11,7 @@ import jp.satoyuichiro.microcosmos.model.material.Mineral
 import jp.satoyuichiro.microcosmos.model.bio.Plant
 import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 import jp.satoyuichiro.microcosmos.model.bio.Herbivore
+import java.awt.Polygon
 
 class Field(width: Int, height: Int) extends JPanel {
 
@@ -49,12 +50,26 @@ class Field(width: Int, height: Int) extends JPanel {
   }
   
   def paintCarnivore(carnivore: Carnivore, g: Graphics): Unit = {
+    val x = carnivore.coordinates.x
+    val y = carnivore.coordinates.y
+    val r = carnivore.appearance.size
+    val theta = carnivore.coordinates.angle
+    
+    val xpoints = Array(x + r * Math.cos(theta), x + r * Math.cos(theta + 2.5), x + 0.5 * r * Math.cos(theta - 3.14), x + r * Math.cos(theta - 2.5)) map (_.toInt)
+    val ypoints = Array(y + r * Math.sin(theta), y + r * Math.sin(theta + 2.5), y + 0.5 * r * Math.sin(theta - 3.14), y + r * Math.sin(theta - 2.5)) map (_.toInt)
     g.setColor(carnivore.appearance.color)
-    g.fillRect(carnivore.coordinates.x, carnivore.coordinates.y, carnivore.appearance.size, carnivore.appearance.size)
+    g.fillPolygon(xpoints, ypoints, xpoints.length)
   }
   
   def paintHerbivore(herbivore: Herbivore, g: Graphics): Unit = {
+    val x = herbivore.coordinates.x
+    val y = herbivore.coordinates.y
+    val r = herbivore.appearance.size
+    val theta = herbivore.coordinates.angle
+    
+    val xpoints = Array(x + r * Math.cos(theta), x + r * Math.cos(theta + 2.5), x + r * Math.cos(theta - 3.14), x + r * Math.cos(theta - 2.5)) map (_.toInt)
+    val ypoints = Array(y + r * Math.sin(theta), y + r * Math.sin(theta + 2.5), y + r * Math.sin(theta - 3.14), y + r * Math.sin(theta - 2.5)) map (_.toInt)
     g.setColor(herbivore.appearance.color)
-    g.fillRect(herbivore.coordinates.x, herbivore.coordinates.y, herbivore.appearance.size, herbivore.appearance.size)
+    g.fillPolygon(xpoints, ypoints, xpoints.length)
   }
 }
