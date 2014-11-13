@@ -1,5 +1,5 @@
 package jp.satoyuichiro.microcosmos.model.learning
 
-class Genetic {
+class Qlearning {
 
 }

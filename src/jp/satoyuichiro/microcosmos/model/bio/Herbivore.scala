@@ -3,9 +3,13 @@ package jp.satoyuichiro.microcosmos.model.bio
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
 
-case class Herbivore(override val coordinates: Coordinates, override val appearance: Appearance, override val velocity: Velocity) extends Animal(coordinates, appearance, velocity) {
+case class Herbivore(override val external: External, override val internal: Internal, override val velocity: Velocity) extends Animal(external, internal, velocity) {
 
-  def update(world: World): Bio = Herbivore(move, appearance, changeVelocity)
+  def evolve: Bio = Herbivore(External(move, external.appearance), internal, changeVelocity)
+  
+  def interact(world: World): World = world
+  
+  def isDead: Boolean = false
   
   def changeVelocity: Velocity = {
     if (Math.random() < 0.05) {
@@ -24,6 +28,6 @@ object Herbivore {
     val coordinates = Coordinates(x,y, 0.0)
     val appearance = Appearance(12, Color.BLUE)
     val velocity = Velocity(10 * Math.random(), 0.1)
-    Herbivore(coordinates, appearance, velocity)
+    Herbivore(External(coordinates, appearance), null, velocity)
   }
 }

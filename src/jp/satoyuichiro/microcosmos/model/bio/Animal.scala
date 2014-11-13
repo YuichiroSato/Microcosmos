@@ -1,11 +1,11 @@
 package jp.satoyuichiro.microcosmos.model.bio
 
-abstract class Animal(override val coordinates: Coordinates, override val appearance: Appearance, val velocity: Velocity) extends Bio(coordinates, appearance){
+abstract class Animal(override val external: External, override val internal: Internal, val velocity: Velocity) extends Bio(external, internal){
 
   def move: Coordinates = {
-    val x = coordinates.x + velocity.speed * Math.cos(coordinates.angle)
-    val y = coordinates.y + velocity.speed * Math.sin(coordinates.angle)
-    val angle = coordinates.angle + velocity.rotation
+    val x = external.coordinates.x + velocity.speed * Math.cos(external.coordinates.angle)
+    val y = external.coordinates.y + velocity.speed * Math.sin(external.coordinates.angle)
+    val angle = external.coordinates.angle + velocity.rotation
     Coordinates(x.toInt, y.toInt, angle)
   }
   

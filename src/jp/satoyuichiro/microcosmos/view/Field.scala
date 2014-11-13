@@ -18,7 +18,9 @@ class Field(width: Int, height: Int) extends JPanel {
   this.setBackground(Color.WHITE)
   
   def paintWorld(world: World, g: Graphics): Unit = {
-    paintBios(world.getBios, g)
+    world.plants foreach { plant => paintPlant(plant, g) }
+    world.carnivores foreach { carnivore => paintCarnivore(carnivore, g) }
+    world.herbivores foreach { herbivore => paintHerbivore(herbivore, g) }
   }
   
   def paintCell(cell: Cell, g: Graphics): Unit = {
@@ -41,31 +43,31 @@ class Field(width: Int, height: Int) extends JPanel {
   }
   
   def paintPlant(plant: Plant, g: Graphics): Unit = {
-    g.setColor(plant.appearance.color)
-    g.fillOval(plant.coordinates.x, plant.coordinates.y, plant.appearance.size, plant.appearance.size)
+    g.setColor(plant.external.appearance.color)
+    g.fillOval(plant.external.coordinates.x, plant.external.coordinates.y, plant.external.appearance.size, plant.external.appearance.size)
   }
   
   def paintCarnivore(carnivore: Carnivore, g: Graphics): Unit = {
-    val x = carnivore.coordinates.x
-    val y = carnivore.coordinates.y
-    val r = carnivore.appearance.size
-    val theta = carnivore.coordinates.angle
+    val x = carnivore.external.coordinates.x
+    val y = carnivore.external.coordinates.y
+    val r = carnivore.external.appearance.size
+    val theta = carnivore.external.coordinates.angle
     
     val xpoints = Array(x + r * Math.cos(theta), x + r * Math.cos(theta + 2.5), x + 0.5 * r * Math.cos(theta - 3.14), x + r * Math.cos(theta - 2.5)) map (_.toInt)
     val ypoints = Array(y + r * Math.sin(theta), y + r * Math.sin(theta + 2.5), y + 0.5 * r * Math.sin(theta - 3.14), y + r * Math.sin(theta - 2.5)) map (_.toInt)
-    g.setColor(carnivore.appearance.color)
+    g.setColor(carnivore.external.appearance.color)
     g.fillPolygon(xpoints, ypoints, xpoints.length)
   }
   
   def paintHerbivore(herbivore: Herbivore, g: Graphics): Unit = {
-    val x = herbivore.coordinates.x
-    val y = herbivore.coordinates.y
-    val r = herbivore.appearance.size
-    val theta = herbivore.coordinates.angle
+    val x = herbivore.external.coordinates.x
+    val y = herbivore.external.coordinates.y
+    val r = herbivore.external.appearance.size
+    val theta = herbivore.external.coordinates.angle
     
     val xpoints = Array(x + r * Math.cos(theta), x + r * Math.cos(theta + 2.5), x + r * Math.cos(theta - 3.14), x + r * Math.cos(theta - 2.5)) map (_.toInt)
     val ypoints = Array(y + r * Math.sin(theta), y + r * Math.sin(theta + 2.5), y + r * Math.sin(theta - 3.14), y + r * Math.sin(theta - 2.5)) map (_.toInt)
-    g.setColor(herbivore.appearance.color)
+    g.setColor(herbivore.external.appearance.color)
     g.fillPolygon(xpoints, ypoints, xpoints.length)
   }
 }
