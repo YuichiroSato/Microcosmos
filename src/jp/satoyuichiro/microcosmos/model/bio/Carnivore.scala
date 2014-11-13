@@ -5,11 +5,11 @@ import java.awt.Color
 
 case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity) extends Animal(external, internal, velocity) {
 
-  def evolve: Bio = Carnivore(External(move, external.appearance), internal, changeVelocity)
+  def evolve: Bio = Carnivore(External(move, external.appearance), Internal(internal.life - 1, internal.water, internal.mineral), changeVelocity)
   
   def interact(world: World): World = world
   
-  def isDead: Boolean = false
+  def isDead: Boolean = internal.life <= 0
   
   def changeVelocity: Velocity = {
     if (Math.random() < 0.1) {
@@ -28,6 +28,6 @@ object Carnivore {
     val coordinates = Coordinates(x,y, 0.0)
     val appearance = Appearance(12, Color.RED)
     val velocity = Velocity(10 * Math.random(), 0.1)
-    Carnivore(External(coordinates, appearance), null, velocity)
+    Carnivore(External(coordinates, appearance), Internal(100, 10, 10), velocity)
   }
 }

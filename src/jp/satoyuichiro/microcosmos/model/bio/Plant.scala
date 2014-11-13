@@ -25,15 +25,16 @@ case class Plant(override val external: External, override val internal: Interna
     }
   }
   
-  def isDead: Boolean = false
+  def isDead: Boolean = internal.life <= 0
   
 }
 
 object Plant {
   
   def apply(x: Int, y: Int): Plant = {
-    new Plant(External(Coordinates(x,y, 0.0), Appearance(10, Color.GREEN)), null)
+    new Plant(External(Coordinates(x,y, 0.0), Appearance(10, Color.GREEN)), Internal(100, 10, 10))
   }
   
 }
 
+ 
