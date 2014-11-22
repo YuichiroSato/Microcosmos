@@ -9,8 +9,8 @@ import java.awt.Toolkit
 
 object Microcosmos extends JFrame with Runnable {
 
-  val fieldWidth = 400
-  val fieldHeight = 400
+  val fieldWidth = 600
+  val fieldHeight = 600
   val field = new Field(fieldWidth, fieldHeight)
   var world = World.init(fieldWidth, fieldHeight)
 
@@ -29,7 +29,7 @@ object Microcosmos extends JFrame with Runnable {
   
   def run() {
     while(true) {
-      world = world.update;
+      world = world.update
       render()
       Thread.sleep(25)
     }

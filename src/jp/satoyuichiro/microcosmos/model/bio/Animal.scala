@@ -12,7 +12,9 @@ abstract class Animal(override val external: External, override val internal: In
   def propel(dv: Double, dtheta: Double): Velocity = Velocity(velocity.speed + dv, velocity.rotation + dtheta)
   
   def distance(bio: Bio): Double = {
-    0.0
+    val dx = bio.external.coordinates.x - this.external.coordinates.x
+    val dy = bio.external.coordinates.y - this.external.coordinates.y
+    Math.sqrt(dx * dx + dy * dy)
   }
 }
 

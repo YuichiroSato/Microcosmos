@@ -20,18 +20,18 @@ case class Herbivore(override val external: External, override val internal: Int
       val eatingTarget = (dist minBy(d => d._2))._1.asInstanceOf[Plant]
       world.removePlant(eatingTarget)
       world.removeHerbivore(this)
-      world.addHerbivore(Herbivore(external, Internal(internal.life + 50, internal.water, internal.mineral), velocity))
+      world.addHerbivore(Herbivore(external, Internal(internal.life + Herbivore.lifeUp, internal.water, internal.mineral), velocity))
     }
     else 
       world
   }
   
   def giveBirth(world: World): World  = {
-    if (300 < internal.life) {
-      val born = Herbivore(external, Internal(100, 0, 0), velocity)
+    if (Herbivore.giveBirthLife < internal.life) {
+      val born = Herbivore(external.coordinates.x, external.coordinates.y)
       world.addHerbivore(born)
       world.removeHerbivore(this)
-      world.addHerbivore(Herbivore(external, Internal(internal.life - 100, internal.water, internal.mineral), velocity))
+      world.addHerbivore(Herbivore(external, Internal(internal.life - Herbivore.giveBirthCost, internal.water, internal.mineral), velocity))
     }
     else
       world
@@ -40,10 +40,13 @@ case class Herbivore(override val external: External, override val internal: Int
   def isDead: Boolean = internal.life <= 0
   
   def changeVelocity: Velocity = {
-    if (Math.random() < 0.05) {
-      propel(10 * Math.random() - 5, Math.random() - 0.5)
+    if (velocity.speed < 0.5) return Velocity(2 + 8 * Math.random(), velocity.rotation)
+    if (Math.random() < 0.1) {
+      propel(Math.random() - 0.5, 0.0)
     } else if (Math.random() < 0.05) {
-      Velocity(velocity.speed + 10 * Math.random() - 5, 0.0)
+      Velocity(2 * Math.random() - 0.7, Math.random() - 0.5)
+    } else if (Math.random() < 0.5) {
+      Velocity(velocity.speed, 0.0)
     } else {
       velocity
     }
@@ -51,11 +54,16 @@ case class Herbivore(override val external: External, override val internal: Int
 }
 
 object Herbivore {
+    
+  val lifeUp = 500
+  val giveBirthLife = 7000
+  val initLife = 100
+  val giveBirthCost = 2000
   
   def apply(x: Int, y: Int): Herbivore = {
-    val coordinates = Coordinates(x,y, 0.0)
+    val coordinates = Coordinates(x,y, Math.random)
     val appearance = Appearance(12, Color.BLUE)
-    val velocity = Velocity(10 * Math.random(), 0.1)
-    Herbivore(External(coordinates, appearance), Internal(100, 10, 10), velocity)
+    val velocity = Velocity(10 * Math.random(), Math.random() - 0.5)
+    Herbivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity)
   }
 }
