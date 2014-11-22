@@ -7,7 +7,9 @@ case class Carnivore(override val external: External, override val internal: Int
 
   def evolve: Bio = Carnivore(External(move, external.appearance), Internal(internal.life - 1, internal.water, internal.mineral), changeVelocity)
   
-  def interact(world: World): World = {
+  def interact(world: World): World = giveBirth(eat(world))
+  
+  def eat(world: World): World = {
     val x = external.coordinates.x
     val y = external.coordinates.y
     val w = external.appearance.size
@@ -18,9 +20,20 @@ case class Carnivore(override val external: External, override val internal: Int
       val eatingTarget = (dist minBy(d => d._2))._1.asInstanceOf[Herbivore]
       world.removeHerbivore(eatingTarget)
       world.removeCarnivore(this)
-      world.addCarnivore(Carnivore(external, Internal(internal.life + 50, internal.water, internal.mineral), velocity))
+      world.addCarnivore(Carnivore(external, Internal(internal.life + 100, internal.water, internal.mineral), velocity))
     }
-    else 
+    else
+      world
+  }
+  
+  def giveBirth(world: World): World  = {
+    if (1000 < internal.life) {
+      val born = Carnivore(external, Internal(100, 0, 0), velocity)
+      world.addCarnivore(born)
+      world.removeCarnivore(this)
+      world.addCarnivore(Carnivore(external, Internal(internal.life - 800, internal.water, internal.mineral), velocity))
+    }
+    else
       world
   }
  
@@ -28,7 +41,7 @@ case class Carnivore(override val external: External, override val internal: Int
   
   def changeVelocity: Velocity = {
     if (Math.random() < 0.1) {
-      propel(10 * Math.random() - 5,  Math.random() - 0.5)
+      propel(20 * Math.random() - 5,  Math.random() - 0.5)
     } else if (Math.random() < 0.05) {
       Velocity(velocity.speed + 10 * Math.random() - 5, 0.0)
     } else {

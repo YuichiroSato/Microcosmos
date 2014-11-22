@@ -7,7 +7,9 @@ case class Herbivore(override val external: External, override val internal: Int
 
   def evolve: Bio = Herbivore(External(move, external.appearance), Internal(internal.life - 1, internal.water, internal.mineral), changeVelocity)
   
-  def interact(world: World): World = {
+  def interact(world: World): World = giveBirth(eat(world))
+  
+  def eat(world: World): World = {
     val x = external.coordinates.x
     val y = external.coordinates.y
     val w = external.appearance.size 
@@ -21,6 +23,17 @@ case class Herbivore(override val external: External, override val internal: Int
       world.addHerbivore(Herbivore(external, Internal(internal.life + 50, internal.water, internal.mineral), velocity))
     }
     else 
+      world
+  }
+  
+  def giveBirth(world: World): World  = {
+    if (300 < internal.life) {
+      val born = Herbivore(external, Internal(100, 0, 0), velocity)
+      world.addHerbivore(born)
+      world.removeHerbivore(this)
+      world.addHerbivore(Herbivore(external, Internal(internal.life - 100, internal.water, internal.mineral), velocity))
+    }
+    else
       world
   }
   
