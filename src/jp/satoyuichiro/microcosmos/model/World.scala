@@ -54,6 +54,22 @@ case class World(var cells: Array[Array[Cell]], val plants: List[Plant], val car
     World(cells, plant :: plants, carnivores, herbivores, width, height)
   }
   
+  def addHerbivore(herb: Herbivore): World = {
+    val x = herb.external.coordinates.x
+    val y = herb.external.coordinates.y
+    val xy = boundaryCondition(Coordinates(x,y, 0.0))
+    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, herb :: cells(xy.x)(xy.y).bios)
+    World(cells, plants, carnivores, herb :: herbivores, width, height)
+  }
+  
+  def addCarnivore(carn: Carnivore): World = {
+    val x = carn.external.coordinates.x
+    val y = carn.external.coordinates.y
+    val xy = boundaryCondition(Coordinates(x,y, 0.0))
+    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, carn :: cells(xy.x)(xy.y).bios)
+    World(cells, plants, carn :: carnivores, herbivores, width, height)
+  }
+  
   def getSubWorld(x:Int, y:Int, w: Int, h: Int): World = {
     var subCells = Array.fill(w)(Array.fill(h)(Cell.empty))
     for (i <- 0 to w - 1) {
@@ -77,6 +93,14 @@ case class World(var cells: Array[Array[Cell]], val plants: List[Plant], val car
     cells(x)(y) = cells(x)(y).remove(herb)
     World(cells, plants, carnivores, herbivores filter (_ != herb), width, height)
   }
+  
+  def removeCarnivore(carn: Carnivore): World = {
+    val x = carn.external.coordinates.x
+    val y = carn.external.coordinates.y
+    cells(x)(y) = cells(x)(y).remove(carn)
+    World(cells, plants, carnivores filter (_ != carn), herbivores, width, height)
+  }
+
 }
 
 object World {

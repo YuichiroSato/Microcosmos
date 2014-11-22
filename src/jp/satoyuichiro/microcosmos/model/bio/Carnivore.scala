@@ -17,6 +17,8 @@ case class Carnivore(override val external: External, override val internal: Int
       val dist = herbs map (h => (h, distance(h)))
       val eatingTarget = (dist minBy(d => d._2))._1.asInstanceOf[Herbivore]
       world.removeHerbivore(eatingTarget)
+      world.removeCarnivore(this)
+      world.addCarnivore(Carnivore(external, Internal(internal.life + 50, internal.water, internal.mineral), velocity))
     }
     else 
       world
