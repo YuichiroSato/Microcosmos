@@ -10,6 +10,10 @@ abstract class Animal(override val external: External, override val internal: In
   }
   
   def propel(dv: Double, dtheta: Double): Velocity = Velocity(velocity.speed + dv, velocity.rotation + dtheta)
+  
+  def distance(bio: Bio): Double = {
+    0.0
+  }
 }
 
 case class Velocity(val speed: Double, val rotation: Double)

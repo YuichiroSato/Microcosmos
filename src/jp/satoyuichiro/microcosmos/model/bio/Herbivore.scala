@@ -7,7 +7,20 @@ case class Herbivore(override val external: External, override val internal: Int
 
   def evolve: Bio = Herbivore(External(move, external.appearance), Internal(internal.life - 1, internal.water, internal.mineral), changeVelocity)
   
-  def interact(world: World): World = world
+  def interact(world: World): World = {
+    val x = external.coordinates.x
+    val y = external.coordinates.y
+    val w = external.appearance.size 
+    val subWorld = world.getSubWorld(x - w, y - w, w * 2, w * 2)
+    val plants = subWorld.getBios.filter(_.isInstanceOf[Plant])
+    if (0 < plants.size) {
+      val dist = plants map (h => (h, distance(h)))
+      val eatingTarget = (dist minBy(d => d._2))._1.asInstanceOf[Plant]
+      world.removePlant(eatingTarget)
+    }
+    else 
+      world
+  }
   
   def isDead: Boolean = internal.life <= 0
   

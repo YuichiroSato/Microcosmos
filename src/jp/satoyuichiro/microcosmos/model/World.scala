@@ -53,6 +53,30 @@ case class World(var cells: Array[Array[Cell]], val plants: List[Plant], val car
     cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, plant :: cells(xy.x)(xy.y).bios)
     World(cells, plant :: plants, carnivores, herbivores, width, height)
   }
+  
+  def getSubWorld(x:Int, y:Int, w: Int, h: Int): World = {
+    var subCells = Array.fill(w)(Array.fill(h)(Cell.empty))
+    for (i <- 0 to w - 1) {
+      for (j <- 0 to h - 1) {
+        if (0 <= x && 0 <= y && x + i < width && y + j < height) subCells(i)(j) = cells(x + i)(y + j)
+      }
+    }
+    World(subCells, List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], w, h)
+  }
+  
+  def removePlant(plant: Plant): World = {
+    val x = plant.external.coordinates.x
+    val y = plant.external.coordinates.y
+    cells(x)(y) = cells(x)(y).remove(plant)
+    World(cells, plants filter (_ != plant), carnivores, herbivores, width, height)
+  }
+  
+  def removeHerbivore(herb: Herbivore): World = {
+    val x = herb.external.coordinates.x
+    val y = herb.external.coordinates.y
+    cells(x)(y) = cells(x)(y).remove(herb)
+    World(cells, plants, carnivores, herbivores filter (_ != herb), width, height)
+  }
 }
 
 object World {
@@ -89,6 +113,7 @@ object World {
 
 case class Cell(val materials: Tuple2[Water, Mineral], val bios: List[Bio]) {
   
+  def remove(bio: Bio): Cell = Cell(materials, bios filter (_ != bio))
 }
 
 object Cell {
@@ -101,5 +126,9 @@ object Cell {
       case _ => List.empty[Bio]
     }
     Cell((new Water(), new Mineral()), bios)
+  }
+  
+  def empty: Cell = {
+    Cell((new Water(), new Mineral()), List.empty[Bio])
   }
 }
