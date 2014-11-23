@@ -10,24 +10,25 @@ case class Plant(override val external: External, override val internal: Interna
   
   def interact(world: World): World = {
     if (Math.random() < 0.005) {
-      if (Math.random() < 0.01) {
+      if (Math.random() < 0.05) {
         val x = (external.coordinates.x + 200 * Math.random()).toInt 
         val y = (external.coordinates.y + 200 * Math.random()).toInt
-        val xy = world.boundaryCondition(Coordinates(x,y,0.0))
-        val plant = Plant(xy.x, xy.y)
-        world.addPlant(plant)
+        giveBirthPlant(world, x, y)
       }
       else {
         val x = (external.coordinates.x + 50 * Math.random() - 25).toInt 
         val y = (external.coordinates.y + 50 * Math.random() - 25).toInt
-        val xy = world.boundaryCondition(Coordinates(x,y,0.0))
-        val plant = Plant(xy.x, xy.y)
-        world.addPlant(plant)
+        giveBirthPlant(world, x, y)
       }
     }
     else {
       world
     }
+  }
+  
+  def giveBirthPlant(world: World, x: Int, y: Int): World = {
+    val xy = world.boundaryCondition(Coordinates(x,y,0.0))
+    world.add(Plant(xy.x, xy.y))
   }
   
   def isDead: Boolean = internal.life <= 0

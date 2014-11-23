@@ -46,33 +46,23 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     Coordinates(x, y, coordinates.angle)
   }
 
-  def addPlant(plant: Plant): World = {
-    val x = plant.external.coordinates.x
-    val y = plant.external.coordinates.y
+  def add(bio: Bio): World = {
+    val x = bio.external.coordinates.x
+    val y = bio.external.coordinates.y
     val xy = boundaryCondition(Coordinates(x, y, 0.0))
-    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, plant :: cells(xy.x)(xy.y).bios)
-    plants ::= plant
+    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, bio :: cells(xy.x)(xy.y).bios)
+    append(bio)
     this
   }
-
-  def addHerbivore(herb: Herbivore): World = {
-    val x = herb.external.coordinates.x
-    val y = herb.external.coordinates.y
-    val xy = boundaryCondition(Coordinates(x, y, 0.0))
-    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, herb :: cells(xy.x)(xy.y).bios)
-    herbivores ::= herb
-    this
+  
+  def append(bio: Bio): Unit = {
+    bio match {
+      case plant: Plant => plants ::= plant
+      case herb: Herbivore => herbivores ::= herb
+      case carn: Carnivore => carnivores ::= carn
+    }
   }
-
-  def addCarnivore(carn: Carnivore): World = {
-    val x = carn.external.coordinates.x
-    val y = carn.external.coordinates.y
-    val xy = boundaryCondition(Coordinates(x, y, 0.0))
-    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, carn :: cells(xy.x)(xy.y).bios)
-    carnivores ::= carn
-    this
-  }
-
+  
   def getSubWorld(x: Int, y: Int, w: Int, h: Int): World = {
     var subCells = Array.fill(w)(Array.fill(h)(Cell.empty))
     for (i <- 0 to w - 1) {
@@ -83,30 +73,26 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     World(subCells, List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], w, h)
   }
 
-  def removePlant(plant: Plant): World = {
-    val x = plant.external.coordinates.x
-    val y = plant.external.coordinates.y
-    cells(x)(y) = cells(x)(y).remove(plant)
-    plants = plants filter (_ != plant)
+  def remove(bio: Bio): World = {
+    val x = bio.external.coordinates.x
+    val y = bio.external.coordinates.y
+    cells(x)(y) = cells(x)(y).remove(bio)
+    deppend(bio)
     this
   }
-
-  def removeHerbivore(herb: Herbivore): World = {
-    val x = herb.external.coordinates.x
-    val y = herb.external.coordinates.y
-    cells(x)(y) = cells(x)(y).remove(herb)
-    herbivores = herbivores filter (_ != herb)
-    this
+  
+  def deppend(bio: Bio): Unit = {
+    bio match {
+      case plant: Plant => plants = removeABio(plant, plants)
+      case herb: Herbivore => herbivores = removeABio(herb, herbivores)
+      case carn: Carnivore => carnivores = removeABio(carn, carnivores)
+    }
   }
-
-  def removeCarnivore(carn: Carnivore): World = {
-    val x = carn.external.coordinates.x
-    val y = carn.external.coordinates.y
-    cells(x)(y) = cells(x)(y).remove(carn)
-    carnivores = carnivores filter (_ != carn)
-    this
+  
+  def removeABio[A <: Bio](bio: A, bios: List[A]): List[A] = {
+    val i = bios.indexOf(bio)
+    bios.take(i) ++ bios.drop(i + 1)
   }
-
 }
 
 object World {

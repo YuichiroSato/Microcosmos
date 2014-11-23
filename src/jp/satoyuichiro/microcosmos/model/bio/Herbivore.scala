@@ -7,34 +7,21 @@ case class Herbivore(override val external: External, override val internal: Int
 
   def evolve: Bio = Herbivore(External(move, external.appearance), Internal(internal.life - 1, internal.water, internal.mineral), changeVelocity)
   
-  def interact(world: World): World = giveBirth(eat(world))
+  def interact(world: World): World = giveBirthHerbivore(eatPlant(world))
   
-  def eat(world: World): World = {
-    val x = external.coordinates.x
-    val y = external.coordinates.y
-    val w = external.appearance.size 
-    val subWorld = world.getSubWorld(x - w, y - w, w * 2, w * 2)
-    val plants = subWorld.getBios.filter(_.isInstanceOf[Plant])
-    if (0 < plants.size) {
-      val dist = plants map (h => (h, distance(h)))
-      val eatingTarget = (dist minBy(d => d._2))._1.asInstanceOf[Plant]
-      world.removePlant(eatingTarget)
-      world.removeHerbivore(this)
-      world.addHerbivore(Herbivore(external, Internal(internal.life + Herbivore.lifeUp, internal.water, internal.mineral), velocity))
-    }
-    else 
-      world
+  val filterf = (bio: Bio) => bio.isInstanceOf[Plant]
+  val updatef = () => Herbivore(external, Internal(internal.life + Herbivore.lifeUp, internal.water, internal.mineral), velocity)
+  
+  def eatPlant(world: World): World = {
+    eat(world, filterf, updatef)
   }
+
+  val condition = () => Herbivore.giveBirthLife < internal.life
+  val born = () => Herbivore(external.coordinates.x, external.coordinates.y)
+  val update2 = () => Herbivore(external, Internal(internal.life - Herbivore.giveBirthCost, internal.water, internal.mineral), velocity)
   
-  def giveBirth(world: World): World  = {
-    if (Herbivore.giveBirthLife < internal.life) {
-      val born = Herbivore(external.coordinates.x, external.coordinates.y)
-      world.addHerbivore(born)
-      world.removeHerbivore(this)
-      world.addHerbivore(Herbivore(external, Internal(internal.life - Herbivore.giveBirthCost, internal.water, internal.mineral), velocity))
-    }
-    else
-      world
+  def giveBirthHerbivore(world: World) = {
+    giveBirth(world, condition, born, update2)
   }
   
   def isDead: Boolean = internal.life <= 0
