@@ -9,8 +9,8 @@ case class Plant(override val external: External, override val internal: Interna
   def evolve: Bio = this
   
   def interact(world: World): World = {
-    if (Math.random() < 0.005) {
-      if (Math.random() < 0.05) {
+    if (Math.random() < 0.01) {
+      if (Math.random() < 0.2) {
         val x = (external.coordinates.x + 200 * Math.random()).toInt 
         val y = (external.coordinates.y + 200 * Math.random()).toInt
         giveBirthPlant(world, x, y)

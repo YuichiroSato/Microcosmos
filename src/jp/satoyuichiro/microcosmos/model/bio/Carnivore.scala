@@ -2,6 +2,7 @@ package jp.satoyuichiro.microcosmos.model.bio
 
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
+import jp.satoyuichiro.microcosmos.model.learning.Action
 
 case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity) extends Animal(external, internal, velocity) {
 
@@ -27,25 +28,26 @@ case class Carnivore(override val external: External, override val internal: Int
   def isDead: Boolean = internal.life <= 0
 
   def changeVelocity: Velocity = {
-    if (velocity.speed < 0.5) return Velocity(2 + 8 * Math.random(), velocity.rotation)
     if (Math.random() < 0.1) {
-      propel(Math.random(), Math.random() - 0.5)
-    } else if (Math.random() < 0.005) {
-      Velocity(2 + Math.random() - 0.5, Math.random() - 0.5)
-    } else if (Math.random() < 0.5) {
-      Velocity(velocity.speed, 0.0)
-    } else {
-      velocity
+      Action.carnivorAction((2 * Math.random()).toInt, velocity)
     }
+    else if (Math.random() < 0.1) {
+      Action.carnivorAction((2 * Math.random()).toInt + 2, velocity)
+    }
+    else if (Math.random() < 0.1) {
+      Action.carnivorAction(5, velocity)
+    }
+    else
+      Action.carnivorAction(7, velocity)
   }
 }
 
 object Carnivore {
 
-  val lifeUp = 300
-  val giveBirthLife = 10000
+  val lifeUp = 200
+  val giveBirthLife = 5000
   val initLife = 500
-  val giveBirthCost = 9500
+  val giveBirthCost = 4000
 
   def apply(x: Int, y: Int): Carnivore = {
     val coordinates = Coordinates(x, y, Math.random())

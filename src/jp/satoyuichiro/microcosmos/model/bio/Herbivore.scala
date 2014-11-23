@@ -2,6 +2,7 @@ package jp.satoyuichiro.microcosmos.model.bio
 
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
+import jp.satoyuichiro.microcosmos.model.learning.Action
 
 case class Herbivore(override val external: External, override val internal: Internal, override val velocity: Velocity) extends Animal(external, internal, velocity) {
 
@@ -27,23 +28,24 @@ case class Herbivore(override val external: External, override val internal: Int
   def isDead: Boolean = internal.life <= 0
   
   def changeVelocity: Velocity = {
-    if (velocity.speed < 0.5) return Velocity(2 + 8 * Math.random(), velocity.rotation)
-    if (Math.random() < 0.1) {
-      propel(Math.random() - 0.5, 0.0)
-    } else if (Math.random() < 0.05) {
-      Velocity(2 * Math.random() - 0.7, Math.random() - 0.5)
-    } else if (Math.random() < 0.5) {
-      Velocity(velocity.speed, 0.0)
-    } else {
-      velocity
+    if (Math.random() < 0.05) {
+      Action.herbivoreAction((2 * Math.random()).toInt, velocity)
     }
+    else if (Math.random() < 0.1) {
+      Action.herbivoreAction((2 * Math.random()).toInt + 2, velocity)
+    }
+    else if (Math.random() < 0.1) {
+      Action.herbivoreAction(5, velocity)
+    }
+    else
+      Action.herbivoreAction(7, velocity)
   }
 }
 
 object Herbivore {
     
-  val lifeUp = 500
-  val giveBirthLife = 7000
+  val lifeUp = 200
+  val giveBirthLife = 4000
   val initLife = 100
   val giveBirthCost = 2000
   

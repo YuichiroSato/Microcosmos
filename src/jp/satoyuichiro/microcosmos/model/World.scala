@@ -50,8 +50,10 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     val x = bio.external.coordinates.x
     val y = bio.external.coordinates.y
     val xy = boundaryCondition(Coordinates(x, y, 0.0))
-    cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, bio :: cells(xy.x)(xy.y).bios)
-    append(bio)
+    if (0 <= x && 0 <= y && x < width && y < height) {
+      cells(xy.x)(xy.y) = Cell(cells(xy.x)(xy.y).materials, bio :: cells(xy.x)(xy.y).bios)
+      append(bio)
+    }
     this
   }
   
@@ -76,8 +78,10 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
   def remove(bio: Bio): World = {
     val x = bio.external.coordinates.x
     val y = bio.external.coordinates.y
-    cells(x)(y) = cells(x)(y).remove(bio)
-    deppend(bio)
+    if (0 <= x && 0 <= y && x < width && y < height) {
+      cells(x)(y) = cells(x)(y).remove(bio)
+      deppend(bio)
+    }
     this
   }
   
