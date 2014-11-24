@@ -10,10 +10,18 @@ case class Plant(override val external: External, override val internal: Interna
   
   def interact(world: World): World = {
     if (Math.random() < 0.01) {
-      if (Math.random() < 0.2) {
-        val x = (external.coordinates.x + 200 * Math.random()).toInt 
-        val y = (external.coordinates.y + 200 * Math.random()).toInt
-        giveBirthPlant(world, x, y)
+      val x = external.coordinates.x
+      val y = external.coordinates.y
+      val w = 40
+      val subWorld = world.getSubWorld(x, y, w, w)
+      val plants = subWorld.getBios filter (_.isInstanceOf[Plant])
+      if (5 < plants.size) {
+        if (Math.random() < 0.01) {
+          val x = (external.coordinates.x + 200 * Math.random()).toInt 
+          val y = (external.coordinates.y + 200 * Math.random()).toInt
+          giveBirthPlant(world, x, y)
+        }
+        world
       }
       else {
         val x = (external.coordinates.x + 50 * Math.random() - 25).toInt 

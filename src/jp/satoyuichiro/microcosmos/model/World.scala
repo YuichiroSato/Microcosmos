@@ -29,8 +29,8 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
   def applyBoundaryCondition(bio: Bio): Bio = {
     bio match {
       case plant: Plant => plant
-      case carn: Carnivore => Carnivore(External(boundaryCondition(carn.external.coordinates), carn.external.appearance), carn.internal, carn.velocity)
-      case herb: Herbivore => Herbivore(External(boundaryCondition(herb.external.coordinates), herb.external.appearance), herb.internal, herb.velocity)
+      case carn: Carnivore => Carnivore(External(boundaryCondition(carn.external.coordinates), carn.external.appearance), carn.internal, carn.velocity, carn.count)
+      case herb: Herbivore => Herbivore(External(boundaryCondition(herb.external.coordinates), herb.external.appearance), herb.internal, herb.velocity, herb.count)
     }
   }
 
