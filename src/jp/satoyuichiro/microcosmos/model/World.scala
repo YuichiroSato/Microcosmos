@@ -64,16 +64,6 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
       case carn: Carnivore => carnivores ::= carn
     }
   }
-  
-  def getSubWorld(x: Int, y: Int, w: Int, h: Int): World = {
-    var subCells = Array.fill(w)(Array.fill(h)(Cell.empty))
-    for (i <- 0 to w - 1) {
-      for (j <- 0 to h - 1) {
-        if (0 <= x && 0 <= y && x + i < width && y + j < height) subCells(i)(j) = cells(x + i)(y + j)
-      }
-    }
-    World(subCells, List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], w, h)
-  }
 
   def remove(bio: Bio): World = {
     val x = bio.external.coordinates.x
@@ -96,6 +86,22 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
   def removeABio[A <: Bio](bio: A, bios: List[A]): List[A] = {
     val i = bios.indexOf(bio)
     bios.take(i) ++ bios.drop(i + 1)
+  }
+  
+  def getSubWorld(x: Int, y: Int, w: Int, h: Int): World = {
+    var subCells = Array.fill(w)(Array.fill(h)(Cell.empty))
+    for (i <- 0 to w - 1) {
+      for (j <- 0 to h - 1) {
+        if (0 <= x && 0 <= y && x + i < width && y + j < height) subCells(i)(j) = cells(x + i)(y + j)
+      }
+    }
+    World(subCells, List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], w, h)
+  }
+  
+  def getSubWorldAround(bio: Bio, w: Int, h: Int): World = {
+    val x = bio.external.coordinates.x
+    val y = bio.external.coordinates.y
+    getSubWorld(x, y, w, h)
   }
 }
 
