@@ -2,6 +2,10 @@ package jp.satoyuichiro.microcosmos.model.learning
 
 import jp.satoyuichiro.microcosmos.model.bio.Velocity
 import jp.satoyuichiro.microcosmos.model.World
+import jp.satoyuichiro.microcosmos.model.bio.Bio
+import jp.satoyuichiro.microcosmos.model.bio.Plant
+import jp.satoyuichiro.microcosmos.model.bio.Herbivore
+import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 
 object Qlearning {
 
@@ -72,7 +76,21 @@ case class BioState(val ulAhead: Boolean, val urAhead: Boolean, val blAhead: Boo
 object State {
 
   def apply(subWorld: World, velocity: Velocity): State = {
-    State(SubState.empty, SubState.empty, SubState.empty, SubState.empty, BioState.empty)
+    try {
+      val width = subWorld.cells.size
+      val height = subWorld.cells(0).size
+      val w = width / 2
+      val h = height / 2
+      
+      val ul = subWorld.getSubWorld(0, 0, w, h).getBios
+      val ur = subWorld.getSubWorld(w, 0, w, h).getBios
+      val bl = subWorld.getSubWorld(0, h, w, h).getBios
+      val br = subWorld.getSubWorld(w, h, w, h).getBios
+      
+      State(SubState.make(ul), SubState.make(ur), SubState.make(bl), SubState.make(br), BioState(velocity))
+    } catch {
+      case _: Throwable => State(SubState.empty, SubState.empty, SubState.empty, SubState.empty, BioState.empty)
+    }
   }
 
   def allStates: List[State] = {
@@ -92,17 +110,32 @@ object SubState {
     }
   }
   
+  def make(bios: List[Bio]): SubState = {
+    val p = bios.filter(_.isInstanceOf[Plant]).size > 0
+    val h = bios.filter(_.isInstanceOf[Herbivore]).size > 0
+    val c = bios.filter(_.isInstanceOf[Carnivore]).size > 0
+    SubState(p, h, c)
+  }
+  
   def allSubStates: List[SubState] = {
     val tf = List(true, false)
     val all = for(a <- tf; b <- tf; c <- tf) yield List(a,b,c)
     all map (ls => SubState(ls))
   }
+  
   def empty: SubState = SubState(false, false, false)
   def plant: SubState = SubState(true, false, false)
   def harbivore: SubState = SubState(false, true, false)
   def carnivore: SubState = SubState(false, false, true)
 }
 
+//        |
+//  ul    |   ur
+//        |
+//-----------------
+//        |
+//   bl   |   br
+//        |
 object BioState {
   
   def apply(ls: List[Boolean]): BioState = {
@@ -112,6 +145,15 @@ object BioState {
       empty
     }
   }
+  
+  def apply(velocity: Velocity): BioState = {
+    val ul = 0 < velocity.rotation && velocity.rotation <= Math.PI / 2
+    val ur = Math.PI / 2 < velocity.rotation && velocity.rotation <= Math.PI
+    val bl = Math.PI < velocity.rotation && velocity.rotation <= 3 * Math.PI / 2
+    val br = 3 * Math.PI / 2 < velocity.rotation && velocity.rotation <= 0
+    BioState(ul, ur, bl, br)
+  }
+  
   def allBioState: List[BioState] = {
     val tf = List(true, false)
     val all = for(a <-tf; b <- tf; c <- tf; d <- tf) yield List(a,b,c,d)
