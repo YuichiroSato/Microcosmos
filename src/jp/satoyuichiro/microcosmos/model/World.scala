@@ -29,8 +29,8 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
   def applyBoundaryCondition(bio: Bio): Bio = {
     bio match {
       case plant: Plant => plant
-      case carn: Carnivore => Carnivore(External(boundaryCondition(carn.external.coordinates), carn.external.appearance), carn.internal, carn.velocity, carn.count)
-      case herb: Herbivore => Herbivore(External(boundaryCondition(herb.external.coordinates), herb.external.appearance), herb.internal, herb.velocity, herb.count)
+      case carn: Carnivore => Carnivore(External(boundaryCondition(carn.external.coordinates), carn.external.appearance), carn.internal, carn.velocity, carn.learningInfo)
+      case herb: Herbivore => Herbivore(External(boundaryCondition(herb.external.coordinates), herb.external.appearance), herb.internal, herb.velocity, herb.learningInfo)
     }
   }
 
@@ -142,6 +142,10 @@ object World {
     val carns = bios filter (_.isInstanceOf[Carnivore]) map (_.asInstanceOf[Carnivore])
     val herbs = bios filter (_.isInstanceOf[Herbivore]) map (_.asInstanceOf[Herbivore])
     World(tem.cells, plants, carns, herbs, width, height)
+  }
+  
+  def empty: World = {
+    World(List.empty[Bio],1,1)
   }
 }
 

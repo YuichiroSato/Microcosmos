@@ -9,30 +9,57 @@ import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 
 object Qlearning {
 
-  var carnivoreQ = Qvalue.init
-  var herbivoreQ = Qvalue.init
+  private var carnivoreQ = Qvalue.init
+  private var herbivoreQ = Qvalue.init
+  
+  private var carnivoreLookUp = carnivoreQ.initLookUpTable
+  private var herbivoreLookUp = herbivoreQ.initLookUpTable
 
-  def herbivoreLearn(): Unit = {
-
+  private var carnivoreInput = List.empty[Tuple2[State, Carnivore]]
+  private var herbivoreInput = List.empty[Tuple2[State, Herbivore]]
+  
+  def herbivoreLearn(herbivore: Herbivore): Unit = {
+    if (1000 < herbivoreInput.size) {
+      
+    } else {
+      herbivoreInput ::= (State(herbivore.learningInfo.subWorld, herbivore.learningInfo.velocity), herbivore)
+    }
   }
 
-  def carnivoreLearn(): Unit = {
-
+  def carnivoreLearn(carnivore: Carnivore): Unit = {
+    if (1000 < carnivoreInput.size) {
+      
+    } else {
+      carnivoreInput ::= (State(carnivore.learningInfo.subWorld, carnivore.learningInfo.velocity), carnivore)
+    }
   }
 
+  val epsilon = 0.1
+  
   def herbivoreAction(subWorld: World, velocity: Velocity): Velocity = {
-    Action.herbivoreAction(Qvalue.bestAction(herbivoreQ, Qvalue.toState(subWorld, velocity)), velocity)
-//    Action.herbivoreAction((8 * Math.random()).toInt, velocity)
+    if (epsilon < Math.random()) {
+     Action.herbivoreAction((Action.maxValue * Math.random()).toInt, velocity)
+    } else {
+      Action.herbivoreAction(herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue), velocity)
+    }
   }
 
   def carnivoreAction(subWorld: World, velocity: Velocity): Velocity = {
-    Action.carnivoreAction(Qvalue.bestAction(carnivoreQ, Qvalue.toState(subWorld, velocity)), velocity)
-//    Action.carnivorAction((8 * Math.random()).toInt, velocity)
+    if (epsilon < Math.random()) {
+     Action.carnivoreAction((Action.maxValue * Math.random()).toInt, velocity)
+    } else {
+      Action.carnivoreAction(carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue), velocity)
+    }
   }
 }
 
 // (State 4 * 9 * 16) * (Action 7) = (Qvalue 4032)
-case class Qvalue(val values: Map[Tuple2[State, Int], Double])
+case class Qvalue(val values: Map[Tuple2[State, Int], Double]) {
+  
+  def initLookUpTable: Map[State, Int] = {
+    State.allStates map (state => state -> Action.maxValue) toMap
+  }
+}
 
 object Qvalue {
 
@@ -52,7 +79,7 @@ object Qvalue {
     qvalue.values filter (_._1._1 == state) map (t => (t._1._2, qvalue.values.getOrElse(t._1, 0.0))) toList
   }
   
-  def bestAction(qvalue: Qvalue, state: State): Int = {
+  def bestAction(qvalue: Qvalue, state: State): Int = {println("called")
     val actionValue = stateToActionValue(qvalue, state)
     if (0 < actionValue.size) {
       actionValue.maxBy(_._2)._1

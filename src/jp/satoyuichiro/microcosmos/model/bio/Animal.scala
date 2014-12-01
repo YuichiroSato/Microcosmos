@@ -47,3 +47,7 @@ abstract class Animal(override val external: External, override val internal: In
 }
 
 case class Velocity(val speed: Double, val rotation: Double)
+case class LearningInfo(val count: Int, val subWorld: World, val velocity: Velocity) {
+  
+  def decriment: LearningInfo = LearningInfo(count - 1, subWorld, velocity)
+}
