@@ -34,7 +34,7 @@ object Qlearning {
       val state0 = State(herbivore0.learningInfo.subWorld, herbivore0.learningInfo.animal.velocity)
       val action = herbivore0.learningInfo.action
       val state1 = State(herbivore0.learningInfo.subWorld, herbivore0.learningInfo.animal.velocity)
-      val reward = herbivore1.internal.life - herbivore0.internal.life
+      val reward = herbivore1.internal.life - herbivore0.learningInfo.animal.internal.life
       herbivoreInput ::= (state0, action, state1, reward)
     }
   }
@@ -47,17 +47,46 @@ object Qlearning {
       val state0 = State(carnivore0.learningInfo.subWorld, carnivore0.learningInfo.animal.velocity)
       val action = carnivore0.learningInfo.action
       val state1 = State(carnivore0.learningInfo.subWorld, carnivore0.learningInfo.animal.velocity)
-      val reward = carnivore1.internal.life - carnivore0.internal.life
+      val reward = carnivore1.internal.life - carnivore0.learningInfo.animal.internal.life
       carnivoreInput ::= (state0, action, state1, reward)
     }
   }
   
+  val alpha = 0.1
+  val gamma = 0.9
+  
   def herbivoreUpdate(): Unit = {
-    
+    herbivoreInput foreach {
+      input =>
+        val targetQ = (input._1, input._2)
+        val currentState = input._3
+        val reward = input._4
+        val oldQ = herbivoreQ.values.getOrElse(targetQ, Qvalue.initValue)
+        val maxQ = (herbivoreQ.values filter (_._1._1 == input._3) maxBy (_._2))._2
+        val newQ = oldQ + alpha * (reward + gamma * maxQ - oldQ)
+        if (herbivoreLookUp.getOrElse(targetQ._1, Int.MinValue) < newQ) {
+          herbivoreLookUp += targetQ._1 -> targetQ._2
+        }
+        herbivoreQ.upadte(targetQ, newQ)
+        println("herb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
+    }
   }
   
   def carnivoreUpdate(): Unit = {
-    
+    carnivoreInput foreach {
+      input =>
+        val targetQ = (input._1, input._2)
+        val currentState = input._3
+        val reward = input._4
+        val oldQ = carnivoreQ.values.getOrElse(targetQ, Qvalue.initValue)
+        val maxQ = (carnivoreQ.values filter (_._1._1 == input._3) maxBy (_._2))._2
+        val newQ = oldQ + alpha * (reward + gamma * maxQ - oldQ)
+        if (carnivoreLookUp.getOrElse(targetQ._1, Int.MinValue) < newQ) {
+          carnivoreLookUp += targetQ._1 -> targetQ._2
+        }
+        carnivoreQ.upadte(targetQ, newQ)
+        println("carn " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
+    }
   }
 
   val epsilon = 0.1
@@ -80,17 +109,23 @@ object Qlearning {
 }
 
 // (State 4 * 9 * 16) * (Action 7) = (Qvalue 4032)
-case class Qvalue(val values: Map[Tuple2[State, Int], Double]) {
+case class Qvalue(var values: Map[Tuple2[State, Int], Double]) {
   
   def initLookUpTable: Map[State, Int] = {
     State.allStates map (state => state -> Action.maxValue) toMap
+  }
+  
+  def upadte(target: Tuple2[State, Int], value: Double): Unit = {
+    values += target -> value
   }
 }
 
 object Qvalue {
 
+  val initValue = 100.0
+  
   def init: Qvalue = {
-    Qvalue(State.allStates flatMap (s => makePair(s, Action.index)) map (t => t -> 100.0) toMap)
+    Qvalue(State.allStates flatMap (s => makePair(s, Action.index)) map (t => t -> initValue) toMap)
   }
 
   def makePair(state: State, ls: List[Int]): List[Tuple2[State, Int]] = {
