@@ -49,13 +49,13 @@ object Herbivore {
   val giveBirthLife = 4000
   val initLife = 100
   val giveBirthCost = 2000
-  val learningInterval = 20
+  val learningInterval = 19
   
   def apply(x: Int, y: Int): Herbivore = {
     val coordinates = Coordinates(x,y, Math.random)
     val appearance = Appearance(12, Color.BLUE)
     val velocity = Velocity(10 * Math.random(), Math.random() - 0.5)
-    val learningInfo = LearningInfo(learningInterval, World.empty, Herbivore.empty, Action.maxValue)
+    val learningInfo = LearningInfo((learningInterval * Math.random()).toInt, World.empty, Herbivore.empty, Action.maxValue)
     Herbivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, learningInfo)
   }
 

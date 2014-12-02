@@ -21,6 +21,8 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     }
     World(world.getBios filter (!_.isDead) map applyBoundaryCondition, width, height)
   }
+  
+  def isEnd: Boolean = plants.size == 0 || carnivores.size == 0 || herbivores.size == 0
 
   def getBios: List[Bio] = {
     cells.toList flatMap (_.toList flatMap (_.bios))

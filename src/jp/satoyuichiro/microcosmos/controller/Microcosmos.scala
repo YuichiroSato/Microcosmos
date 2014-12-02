@@ -32,6 +32,7 @@ object Microcosmos extends JFrame with Runnable {
   def run() {
     while(true) {
       world = world.update
+      if (world.isEnd) world = World.init(fieldWidth, fieldHeight)
       render()
       Thread.sleep(25)
     }
