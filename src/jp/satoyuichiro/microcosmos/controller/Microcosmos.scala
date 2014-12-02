@@ -6,6 +6,7 @@ import java.awt.Graphics
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
 import java.awt.Toolkit
+import jp.satoyuichiro.microcosmos.model.learning.Qlearning
 
 object Microcosmos extends JFrame with Runnable {
 
@@ -25,6 +26,7 @@ object Microcosmos extends JFrame with Runnable {
     this.add(field)
     this.setVisible(true)
     this.show()
+    Qlearning.init
   }
   
   def run() {

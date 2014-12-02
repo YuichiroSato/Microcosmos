@@ -9,46 +9,72 @@ import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 
 object Qlearning {
 
-  private var carnivoreQ = Qvalue.init
-  private var herbivoreQ = Qvalue.init
+  private var carnivoreQ = null: Qvalue
+  private var herbivoreQ = null: Qvalue
   
-  private var carnivoreLookUp = carnivoreQ.initLookUpTable
-  private var herbivoreLookUp = herbivoreQ.initLookUpTable
+  private var carnivoreLookUp = null: Map[State, Int]
+  private var herbivoreLookUp = null: Map[State, Int]
 
-  private var carnivoreInput = List.empty[Tuple2[State, Carnivore]]
-  private var herbivoreInput = List.empty[Tuple2[State, Herbivore]]
+  private var carnivoreInput = List.empty[Tuple4[State, Int, State, Int]]
+  private var herbivoreInput = List.empty[Tuple4[State, Int, State, Int]]
   
-  def herbivoreLearn(herbivore: Herbivore): Unit = {
-    if (1000 < herbivoreInput.size) {
-      
+  def init: Unit = {
+    carnivoreQ = Qvalue.init
+    herbivoreQ = Qvalue.init
+  
+    carnivoreLookUp = carnivoreQ.initLookUpTable
+    herbivoreLookUp = herbivoreQ.initLookUpTable
+  }
+  
+  def herbivoreLearn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
+    if (100 < herbivoreInput.size) {
+      herbivoreUpdate()
+      herbivoreInput = List.empty[Tuple4[State, Int, State, Int]]
     } else {
-      herbivoreInput ::= (State(herbivore.learningInfo.subWorld, herbivore.learningInfo.velocity), herbivore)
+      val state0 = State(herbivore0.learningInfo.subWorld, herbivore0.learningInfo.animal.velocity)
+      val action = herbivore0.learningInfo.action
+      val state1 = State(herbivore0.learningInfo.subWorld, herbivore0.learningInfo.animal.velocity)
+      val reward = herbivore1.internal.life - herbivore0.internal.life
+      herbivoreInput ::= (state0, action, state1, reward)
     }
   }
 
-  def carnivoreLearn(carnivore: Carnivore): Unit = {
-    if (1000 < carnivoreInput.size) {
-      
+  def carnivoreLearn(carnivore0: Carnivore, carnivore1: Carnivore): Unit = {
+    if (100 < carnivoreInput.size) {
+      carnivoreUpdate()
+      carnivoreInput = List.empty[Tuple4[State, Int, State, Int]]
     } else {
-      carnivoreInput ::= (State(carnivore.learningInfo.subWorld, carnivore.learningInfo.velocity), carnivore)
+      val state0 = State(carnivore0.learningInfo.subWorld, carnivore0.learningInfo.animal.velocity)
+      val action = carnivore0.learningInfo.action
+      val state1 = State(carnivore0.learningInfo.subWorld, carnivore0.learningInfo.animal.velocity)
+      val reward = carnivore1.internal.life - carnivore0.internal.life
+      carnivoreInput ::= (state0, action, state1, reward)
     }
+  }
+  
+  def herbivoreUpdate(): Unit = {
+    
+  }
+  
+  def carnivoreUpdate(): Unit = {
+    
   }
 
   val epsilon = 0.1
   
-  def herbivoreAction(subWorld: World, velocity: Velocity): Velocity = {
+  def herbivoreAction(subWorld: World, velocity: Velocity): Int = {
     if (epsilon < Math.random()) {
-     Action.herbivoreAction((Action.maxValue * Math.random()).toInt, velocity)
+     (Action.maxValue * Math.random()).toInt
     } else {
-      Action.herbivoreAction(herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue), velocity)
+      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue)
     }
   }
 
-  def carnivoreAction(subWorld: World, velocity: Velocity): Velocity = {
+  def carnivoreAction(subWorld: World, velocity: Velocity): Int = {
     if (epsilon < Math.random()) {
-     Action.carnivoreAction((Action.maxValue * Math.random()).toInt, velocity)
+     (Action.maxValue * Math.random()).toInt
     } else {
-      Action.carnivoreAction(carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue), velocity)
+      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue)
     }
   }
 }
@@ -79,7 +105,7 @@ object Qvalue {
     qvalue.values filter (_._1._1 == state) map (t => (t._1._2, qvalue.values.getOrElse(t._1, 0.0))) toList
   }
   
-  def bestAction(qvalue: Qvalue, state: State): Int = {println("called")
+  def bestAction(qvalue: Qvalue, state: State): Int = {
     val actionValue = stateToActionValue(qvalue, state)
     if (0 < actionValue.size) {
       actionValue.maxBy(_._2)._1
