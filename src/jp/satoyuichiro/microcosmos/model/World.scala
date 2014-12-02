@@ -161,8 +161,8 @@ object Cell {
   def init(x: Int, y: Int): Cell = {
     val bios = Math.random match {
       case i if i < 0.0003 => List(Plant(x, y))
-      case i if 0.0003 < i && i < 0.00035 => List(Carnivore(x, y))
-      case i if 0.00035 < i && i < 0.00045 => List(Herbivore(x, y))
+      case i if 0.0003 < i && i < 0.00031 => List(Carnivore(x, y))
+      case i if 0.00031 < i && i < 0.00033 => List(Herbivore(x, y))
       case _ => List.empty[Bio]
     }
     Cell((new Water(), new Mineral()), bios)

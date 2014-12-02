@@ -31,7 +31,7 @@ case class Herbivore(override val external: External, override val internal: Int
   
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
-      val subWorld = world.getSubWorldAround(this, 40, 40)
+      val subWorld = world.getSubWorldAround(this, 20, 20)
       val action = Qlearning.herbivoreAction(subWorld, velocity)
       val herb = Herbivore(external, internal, Action.herbivoreAction(action, velocity), LearningInfo(Herbivore.learningInterval, subWorld, this, action))
       Qlearning.herbivoreLearn(this, herb)

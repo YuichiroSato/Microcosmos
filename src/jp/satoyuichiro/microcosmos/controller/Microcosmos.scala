@@ -30,11 +30,13 @@ object Microcosmos extends JFrame with Runnable {
   }
   
   def run() {
+    val sleepTime = 150
     while(true) {
       world = world.update
       if (world.isEnd) world = World.init(fieldWidth, fieldHeight)
       render()
-      Thread.sleep(25)
+      if (Qlearning.endOfLearning) Qlearning.update()
+      Thread.sleep(sleepTime)
     }
   }
   

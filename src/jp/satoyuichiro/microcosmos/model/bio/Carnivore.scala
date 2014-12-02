@@ -31,7 +31,7 @@ case class Carnivore(override val external: External, override val internal: Int
 
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
-      val subWorld = world.getSubWorldAround(this, 40, 40)
+      val subWorld = world.getSubWorldAround(this, 20, 20)
       val action = Qlearning.carnivoreAction(subWorld, velocity)
       val carb = Carnivore(external, internal, Action.carnivoreAction(action, velocity), LearningInfo(Carnivore.learningInterval, subWorld, this, action))
       Qlearning.carnivoreLearn(this, carb)
