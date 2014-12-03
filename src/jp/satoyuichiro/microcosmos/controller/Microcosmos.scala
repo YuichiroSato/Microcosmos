@@ -7,6 +7,10 @@ import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
 import java.awt.Toolkit
 import jp.satoyuichiro.microcosmos.model.learning.Qlearning
+import jp.satoyuichiro.microcosmos.model.learning.StateActionFunction
+import jp.satoyuichiro.microcosmos.model.learning.State
+import java.io.FileInputStream
+import java.io.ObjectInputStream
 
 object Microcosmos extends JFrame with Runnable {
 
@@ -14,6 +18,10 @@ object Microcosmos extends JFrame with Runnable {
   val fieldHeight = 600
   val field = new Field(fieldWidth, fieldHeight)
   var world = World.init(fieldWidth, fieldHeight)
+  
+  val filePathC = "data/carnivore"
+  val filePathH = "data/herbivore"
+  var fileCount = 0
 
   def main(args: Array[String]): Unit = {
     init()
@@ -26,16 +34,48 @@ object Microcosmos extends JFrame with Runnable {
     this.add(field)
     this.setVisible(true)
     this.show()
-    Qlearning.init
+    val map = readMap(0)
+    StateActionFunction.setCarnivoreQ(map._1)
+    StateActionFunction.setHerbivoreQ(map._2)
+  }
+  
+  def readMap(count: Int): Tuple2[Map[State, Int], Map[State, Int]] = {
+    if (count < 0) return (Map.empty[State, Int], Map.empty[State, Int])
+
+    try {
+      val cFile = new FileInputStream(filePathC + fileCount.toString + ".txt")
+	  val cStream = new ObjectInputStream(cFile)
+      val cmap = cStream.readObject().asInstanceOf[Map[State, Int]]
+
+      val hFile = new FileInputStream(filePathH + fileCount.toString + ".txt")
+	  val hStream = new ObjectInputStream(hFile)
+      val hmap = hStream.readObject().asInstanceOf[Map[State, Int]]
+      
+      cStream.close()
+      hStream.close()
+      cFile.close()
+      hFile.close()
+      
+      (cmap, hmap)
+    } catch {
+      case _: Throwable =>
+        fileCount -= 1
+        readMap(fileCount)
+    }
   }
   
   def run() {
-    val sleepTime = 150
+    val sleepTime = 25
     while(true) {
       world = world.update
-      if (world.isEnd) world = World.init(fieldWidth, fieldHeight)
+      if (world.isEnd) {
+        world = World.init(fieldWidth, fieldHeight)
+        fileCount += 1
+        val map = readMap(fileCount)
+        StateActionFunction.setCarnivoreQ(map._1)
+        StateActionFunction.setHerbivoreQ(map._2)
+      }
       render()
-      if (Qlearning.endOfLearning) Qlearning.update()
       Thread.sleep(sleepTime)
     }
   }

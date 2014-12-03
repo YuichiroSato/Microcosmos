@@ -4,6 +4,7 @@ import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
 import jp.satoyuichiro.microcosmos.model.learning.Action
 import jp.satoyuichiro.microcosmos.model.learning.Qlearning
+import jp.satoyuichiro.microcosmos.model.learning.StateActionFunction
 
 case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity, var learningInfo: LearningInfo)
   extends Animal(external, internal, velocity) {
@@ -32,9 +33,9 @@ case class Carnivore(override val external: External, override val internal: Int
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
       val subWorld = world.getSubWorldAround(this, 20, 20)
-      val action = Qlearning.carnivoreAction(subWorld, velocity)
+      val action = StateActionFunction.carnivoreAction(subWorld, velocity)
       val carb = Carnivore(external, internal, Action.carnivoreAction(action, velocity), LearningInfo(Carnivore.learningInterval, subWorld, this, action))
-      Qlearning.carnivoreLearn(this, carb)
+//      Qlearning.carnivoreLearn(this, carb)
       world.remove(this)
       world.add(carb)
     }

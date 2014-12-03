@@ -117,6 +117,9 @@ object Qlearning {
       carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue)
     }
   }
+  
+  def getCarniveorLookUp: Map[State, Int] = carnivoreLookUp
+  def getHerbivoreLookUp: Map[State, Int] = herbivoreLookUp
 }
 
 // (State 4 * 9 * 16 * 6) * (Action 7) = (Qvalue 24192)
@@ -169,6 +172,23 @@ object Qvalue {
     } else {
       Action.maxValue
     }
+  }
+}
+
+object StateActionFunction {
+  
+  private var carnivoreLookUp = Map.empty[State, Int]
+  private var herbivoreLookUp = Map.empty[State, Int]
+
+  def setHerbivoreQ(map: Map[State, Int]): Unit = herbivoreLookUp = map
+  def setCarnivoreQ(map: Map[State, Int]): Unit = carnivoreLookUp = map
+  
+  def herbivoreAction(subWorld: World, velocity: Velocity): Int = {
+      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), (Action.maxValue * Math.random()).toInt)
+  }
+
+  def carnivoreAction(subWorld: World, velocity: Velocity): Int = {
+      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), (Action.maxValue * Math.random()).toInt)
   }
 }
 
