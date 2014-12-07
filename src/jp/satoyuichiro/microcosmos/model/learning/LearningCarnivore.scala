@@ -15,8 +15,8 @@ extends Carnivore(external, internal, velocity, learningInfoo) {
 
   override def chooseAction(world: World): World = {
     if (learningInfoo.count < 0) {
-      val subWorld = world.getSubWorldAround(this, 20, 20)
-      val action = Qlearning.carnivoreAction(subWorld, velocity)
+      val subWorld = world.getSubWorldAround(this, 40, 40)
+      val action = Qlearning.carnivoreAction(subWorld, this)
       val carb = new LearningCarnivore(external, internal, Action.carnivoreAction(action, velocity), LearningInfo(Carnivore.learningInterval, subWorld, this, action))
       Qlearning.carnivoreLearn(this, carb)
       world.remove(this)

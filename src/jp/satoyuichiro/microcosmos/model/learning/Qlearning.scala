@@ -7,6 +7,7 @@ import jp.satoyuichiro.microcosmos.model.bio.Plant
 import jp.satoyuichiro.microcosmos.model.bio.Herbivore
 import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 import scala.collection.immutable.Queue
+import jp.satoyuichiro.microcosmos.model.bio.Animal
 
 object Qlearning {
 
@@ -27,32 +28,23 @@ object Qlearning {
     herbivoreLookUp = herbivoreQ.initLookUpTable
   }
 
-  val maxSize = 100
-  
   def herbivoreLearn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
-    if (herbivoreInput.size < maxSize) {
-      val state0 = State(herbivore0.learningInfo.subWorld, herbivore0.learningInfo.animal.velocity)
-      val action = herbivore0.learningInfo.action
-      val state1 = State(herbivore0.learningInfo.subWorld, herbivore0.learningInfo.animal.velocity)
-      val reward = herbivore1.internal.life - herbivore0.learningInfo.animal.internal.life
-      herbivoreInput = herbivoreInput.enqueue((state0, action, state1, reward))
-    }
+    val state0 = State(herbivore0.learningInfo.subWorld, herbivore0)
+    val action = herbivore0.learningInfo.action
+    val state1 = State(herbivore1.learningInfo.subWorld, herbivore1)
+    val reward = herbivore1.internal.life - herbivore0.learningInfo.animal.internal.life
+    herbivoreInput = herbivoreInput.enqueue((state0, action, state1, reward))
   }
 
   def carnivoreLearn(carnivore0: Carnivore, carnivore1: Carnivore): Unit = {
-    if (carnivoreInput.size < maxSize) {
-      val state0 = State(carnivore0.learningInfo.subWorld, carnivore0.learningInfo.animal.velocity)
-      val action = carnivore0.learningInfo.action
-      val state1 = State(carnivore0.learningInfo.subWorld, carnivore0.learningInfo.animal.velocity)
-      val reward = carnivore1.internal.life - carnivore0.learningInfo.animal.internal.life
-      carnivoreInput = carnivoreInput.enqueue((state0, action, state1, reward))
-    }
+    val state0 = State(carnivore0.learningInfo.subWorld, carnivore0)
+    val action = carnivore0.learningInfo.action
+    val state1 = State(carnivore1.learningInfo.subWorld, carnivore1)
+    val reward = carnivore1.internal.life - carnivore0.learningInfo.animal.internal.life
+    carnivoreInput = carnivoreInput.enqueue((state0, action, state1, reward))
   }
-  
-  def endOfLearning: Boolean = herbivoreInput.size >= maxSize || carnivoreInput.size >= maxSize
-  
+    
   def update(): Unit = {
-    println("updating")
     val start = System.currentTimeMillis()
     for(elem <- herbivoreInput) {
       herbivoreUpdate(elem._1, elem._2, elem._3, elem._4)
@@ -60,7 +52,8 @@ object Qlearning {
     for(elem <- carnivoreInput) {
       carnivoreUpdate(elem._1, elem._2, elem._3, elem._4)
     }
-    println("end "+ (System.currentTimeMillis() - start))
+    herbivoreInput = Queue.empty[Tuple4[State, Int, State, Int]]
+    carnivoreInput = Queue.empty[Tuple4[State, Int, State, Int]]
   }
 
   val alpha = 0.1
@@ -102,19 +95,19 @@ object Qlearning {
   
   val epsilon = 0.1
 
-  def herbivoreAction(subWorld: World, velocity: Velocity): Int = {
+  def herbivoreAction(subWorld: World, herbivore: Herbivore): Int = {
     if (epsilon < Math.random()) {
       (Action.maxValue * Math.random()).toInt
     } else {
-      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue)
+      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, herbivore), Action.maxValue)
     }
   }
 
-  def carnivoreAction(subWorld: World, velocity: Velocity): Int = {
+  def carnivoreAction(subWorld: World, carnivore: Carnivore): Int = {
     if (epsilon < Math.random()) {
       (Action.maxValue * Math.random()).toInt
     } else {
-      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), Action.maxValue)
+      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, carnivore), Action.maxValue)
     }
   }
   
@@ -157,8 +150,8 @@ object Qvalue {
     ls map (i => (state, i))
   }
 
-  def toState(subWorld: World, velocity: Velocity): State = {
-    State(subWorld, velocity)
+  def toState(subWorld: World, animal: Animal): State = {
+    State(subWorld, animal)
   }
 
   def stateToActionValue(qvalue: Qvalue, state: State): List[Tuple2[Int, Double]] = {
@@ -183,12 +176,12 @@ object StateActionFunction {
   def setHerbivoreQ(map: Map[State, Int]): Unit = herbivoreLookUp = map
   def setCarnivoreQ(map: Map[State, Int]): Unit = carnivoreLookUp = map
   
-  def herbivoreAction(subWorld: World, velocity: Velocity): Int = {
-      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), (Action.maxValue * Math.random()).toInt)
+  def herbivoreAction(subWorld: World, hervibore: Herbivore): Int = {
+      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, hervibore), (Action.maxValue * Math.random()).toInt)
   }
 
-  def carnivoreAction(subWorld: World, velocity: Velocity): Int = {
-      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, velocity), (Action.maxValue * Math.random()).toInt)
+  def carnivoreAction(subWorld: World, carnivore: Carnivore): Int = {
+      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, carnivore), (Action.maxValue * Math.random()).toInt)
   }
 }
 
@@ -205,25 +198,19 @@ case class BioState(val ulAhead: Boolean, val urAhead: Boolean, val blAhead: Boo
 
 object State {
 
-  def apply(subWorld: World, velocity: Velocity): State = {
+  def apply(subWorld: World, animal: Animal): State = {
     try {
       val width = subWorld.cells.size
       val height = subWorld.cells(0).size
       val w = width / 2
       val h = height / 2
 
-//      val ul = subWorld.getSubWorld(0, 0, w, h).getBios
-//      val ur = subWorld.getSubWorld(w, 0, w, h).getBios
-//      val bl = subWorld.getSubWorld(0, h, w, h).getBios
-//      val br = subWorld.getSubWorld(w, h, w, h).getBios
-//
-//      State(SubState.make(ul), SubState.make(ur), SubState.make(bl), SubState.make(br), BioState(velocity))
       val ul = subWorldToSubState(subWorld, 0, 0, w, h)
       val ur = subWorldToSubState(subWorld, w, 0, w, h)
       val bl = subWorldToSubState(subWorld, 0, h, w, h)
       val br = subWorldToSubState(subWorld, w, h, w, h)
       
-      State(ul, ur, bl, br, BioState(velocity))
+      State(ul, ur, bl, br, BioState(animal))
     } catch {
       case _: Throwable => State(SubState.empty, SubState.empty, SubState.empty, SubState.empty, BioState.empty)
     }
@@ -237,8 +224,8 @@ object State {
       for (j <- starty to starty + height - 1) {
         val bios = subWorld.cells(i)(j).bios
         if (!bios.isEmpty) {
-          bios foreach {
-            bio => bio match {
+          for (bio <- bios) {
+            bio match {
               case p: Plant => pexists ||= true
               case h: Herbivore => hexists ||= true
               case c: Carnivore => cexists ||= true
@@ -313,12 +300,13 @@ object BioState {
     }
   }
 
-  def apply(velocity: Velocity): BioState = {
-    val ul = 0 < velocity.rotation && velocity.rotation <= Math.PI / 2
-    val ur = Math.PI / 2 < velocity.rotation && velocity.rotation <= Math.PI
-    val bl = Math.PI < velocity.rotation && velocity.rotation <= 3 * Math.PI / 2
-    val br = 3 * Math.PI / 2 < velocity.rotation && velocity.rotation <= 0
-    BioState(ul, ur, bl, br, speedType(velocity.speed))
+  def apply(animal: Animal): BioState = {
+    val angle = animal.external.coordinates.angle
+    val ul = 0 < angle && angle <= Math.PI / 2
+    val ur = Math.PI / 2 < angle && angle <= Math.PI
+    val bl = Math.PI < angle && angle <= 3 * Math.PI / 2
+    val br = 3 * Math.PI / 2 < angle && angle <= 0
+    BioState(ul, ur, bl, br, speedType(animal.velocity.speed))
   }
 
   def speedType(speed: Double): Int = if (maxSpeedType < speed) maxSpeedType else speed.abs.toInt

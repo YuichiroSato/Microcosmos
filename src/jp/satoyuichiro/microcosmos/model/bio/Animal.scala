@@ -29,8 +29,7 @@ abstract class Animal(override val external: External, override val internal: In
       val dist = bios map (h => (h, distance(h)))
       val eatingTarget = (dist minBy (d => d._2))._1
       world.remove(eatingTarget)
-      world.remove(this)
-      world.add(update())
+      world.updateBio(this, update())
     } else
       world
   }
@@ -39,8 +38,7 @@ abstract class Animal(override val external: External, override val internal: In
     if (condition()) {
       val bio = born()
       world.add(bio)
-      world.remove(this)
-      world.add(update())
+      world.updateBio(this, update())
     } else
       world
   }

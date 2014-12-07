@@ -11,28 +11,35 @@ import jp.satoyuichiro.microcosmos.model.bio.Appearance
 import java.awt.Color
 import jp.satoyuichiro.microcosmos.model.bio.External
 
-case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var carnivores: List[Carnivore], var herbivores: List[Herbivore], val width: Int, val height: Int) {
+case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var carnivores: List[Carnivore], var herbivores: List[Herbivore],
+    val width: Int, val height: Int) {
 
-  def update: World = {
-    val evolved = (plants map (_.evolve.asInstanceOf[Plant])) ++ (carnivores map (_.evolve.asInstanceOf[Carnivore])) ++ (herbivores map (_.evolve.asInstanceOf[Herbivore]))
-    var world = World(evolved map applyBoundaryCondition, width, height)
-    world.getBios foreach {
-      bio => world = bio.interact(world)
+  def update: World = evolve.interact
+  
+  def evolve: World = {
+    val evolved = (plants map (_.evolve.asInstanceOf[Plant])) ++
+      (carnivores map (_.evolve.asInstanceOf[Carnivore])) ++
+      (herbivores map (_.evolve.asInstanceOf[Herbivore]))
+    World(evolved map applyBoundaryCondition, width, height)
+  }
+  
+  def interact: World = {
+    var world = this
+    for (bio <- getBios) {
+      world = bio.interact(world)
     }
     World(world.getBios filter (!_.isDead) map applyBoundaryCondition, width, height)
   }
   
   def isEnd: Boolean = plants.size == 0 || carnivores.size == 0 || herbivores.size == 0
 
-  def getBios: List[Bio] = {
-    cells.toList flatMap (_.toList flatMap (_.bios))
-  }
+  def getBios: List[Bio] = cells.toList flatMap (_.toList flatMap (_.bios))
 
   def applyBoundaryCondition(bio: Bio): Bio = {
     bio match {
       case plant: Plant => plant
-      case carn: Carnivore => Carnivore(External(boundaryCondition(carn.external.coordinates), carn.external.appearance), carn.internal, carn.velocity, carn.learningInfo)
-      case herb: Herbivore => Herbivore(External(boundaryCondition(herb.external.coordinates), herb.external.appearance), herb.internal, herb.velocity, herb.learningInfo)
+      case carn: Carnivore => carn.setExternal(boundaryCondition(carn.external.coordinates), carn.external.appearance)
+      case herb: Herbivore => herb.setExternal(boundaryCondition(herb.external.coordinates), herb.external.appearance)
     }
   }
 
@@ -77,17 +84,14 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     this
   }
   
+  def updateBio(from: Bio, to: Bio): World = remove(from).add(to)
+  
   def deppend(bio: Bio): Unit = {
     bio match {
-      case plant: Plant => plants = removeABio(plant, plants)
-      case herb: Herbivore => herbivores = removeABio(herb, herbivores)
-      case carn: Carnivore => carnivores = removeABio(carn, carnivores)
+      case plant: Plant => plants = World.removeABio(plant, plants)
+      case herb: Herbivore => herbivores = World.removeABio(herb, herbivores)
+      case carn: Carnivore => carnivores = World.removeABio(carn, carnivores)
     }
-  }
-  
-  def removeABio[A <: Bio](bio: A, bios: List[A]): List[A] = {
-    val i = bios.indexOf(bio)
-    bios.take(i) ++ bios.drop(i + 1)
   }
   
   def getSubWorld(x: Int, y: Int, w: Int, h: Int): World = {
@@ -140,29 +144,39 @@ object World {
     }
     val tem = World(cells, List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], width, height)
     val bios = tem.getBios
-    val plants = bios filter (_.isInstanceOf[Plant]) map (_.asInstanceOf[Plant])
-    val carns = bios filter (_.isInstanceOf[Carnivore]) map (_.asInstanceOf[Carnivore])
-    val herbs = bios filter (_.isInstanceOf[Herbivore]) map (_.asInstanceOf[Herbivore])
+    val plants = bios collect { case p: Plant => p }
+    val carns = bios collect { case c: Carnivore => c }
+    val herbs = bios collect { case h: Herbivore => h }
     World(tem.cells, plants, carns, herbs, width, height)
   }
   
   def empty: World = {
     World(List.empty[Bio],1,1)
   }
+  
+  def removeABio[A <: Bio](bio: A, bios: List[A]): List[A] = {
+    val i = bios.indexOf(bio)
+    bios.take(i) ++ bios.drop(i + 1)
+  }
 }
 
 case class Cell(val materials: Tuple2[Water, Mineral], val bios: List[Bio]) {
 
-  def remove(bio: Bio): Cell = Cell(materials, bios filter (_ != bio))
+  def remove(bio: Bio): Cell = Cell(materials, World.removeABio(bio, bios))
 }
 
 object Cell {
 
+  val plant = 0.0003
+  val carnivore = 0.00001
+  val herbivore = 0.00002
+  val total = plant + carnivore + herbivore
+  
   def init(x: Int, y: Int): Cell = {
-    val bios = Math.random match {
-      case i if i < 0.0003 => List(Plant(x, y))
-      case i if 0.0003 < i && i < 0.00031 => List(Carnivore(x, y))
-      case i if 0.00031 < i && i < 0.00033 => List(Herbivore(x, y))
+    val bios = Math.random() match {
+      case i if i < plant => List(Plant(x, y))
+      case i if plant <= i && i < plant + carnivore => List(Carnivore(x, y))
+      case i if plant + carnivore <= i && i < total => List(Herbivore(x, y))
       case _ => List.empty[Bio]
     }
     Cell((new Water(), new Mineral()), bios)

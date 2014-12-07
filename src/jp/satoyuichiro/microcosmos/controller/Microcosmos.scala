@@ -11,6 +11,8 @@ import jp.satoyuichiro.microcosmos.model.learning.StateActionFunction
 import jp.satoyuichiro.microcosmos.model.learning.State
 import java.io.FileInputStream
 import java.io.ObjectInputStream
+import scala.io.Source
+import java.io.File
 
 object Microcosmos extends JFrame with Runnable {
 
@@ -41,26 +43,35 @@ object Microcosmos extends JFrame with Runnable {
   
   def readMap(count: Int): Tuple2[Map[State, Int], Map[State, Int]] = {
     if (count < 0) return (Map.empty[State, Int], Map.empty[State, Int])
-
-    try {
-      val cFile = new FileInputStream(filePathC + fileCount.toString + ".txt")
+    
+    val cFileName = filePathC + fileCount.toString + ".txt"
+    val hFileName = filePathH + fileCount.toString + ".txt"
+    val cf = new File(cFileName)
+    val hf = new File(hFileName)
+    
+    if (cf.exists() && hf.exists()) {
+      val cFile = new FileInputStream(cFileName)
 	  val cStream = new ObjectInputStream(cFile)
-      val cmap = cStream.readObject().asInstanceOf[Map[State, Int]]
 
-      val hFile = new FileInputStream(filePathH + fileCount.toString + ".txt")
+      val hFile = new FileInputStream(hFileName)
 	  val hStream = new ObjectInputStream(hFile)
-      val hmap = hStream.readObject().asInstanceOf[Map[State, Int]]
-      
-      cStream.close()
-      hStream.close()
-      cFile.close()
-      hFile.close()
-      
-      (cmap, hmap)
-    } catch {
-      case _: Throwable =>
-        fileCount -= 1
-        readMap(fileCount)
+    
+      try {
+        val cmap = cStream.readObject().asInstanceOf[Map[State, Int]]
+        val hmap = hStream.readObject().asInstanceOf[Map[State, Int]]
+            
+        (cmap, hmap)
+      } catch {
+        case _: Throwable => (Map.empty[State, Int], Map.empty[State, Int])
+      } finally {
+        cStream.close()
+        hStream.close()
+        cFile.close()
+        hFile.close()
+      }
+    } else {
+      fileCount -= 1
+      readMap(fileCount)
     }
   }
   
