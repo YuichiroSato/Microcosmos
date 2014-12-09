@@ -13,13 +13,13 @@ object StateActionFunctionGenerator {
   val fieldHeight = 600
   
   def main(args: Array[String]): Unit = {
-    val n = 10000
+    val n = 1000
     Qlearning.init
-    var world : World = LearningWorld.init(fieldWidth, fieldHeight)
+    var world = World.initLearning(fieldWidth, fieldHeight)
     for (i <- 1 to n) {println(i)
       world = world.update
       Qlearning.update()
-      if (world.isEnd) world = LearningWorld.init(fieldWidth, fieldHeight)
+      if (world.isEnd) world = World.initLearning(fieldWidth, fieldHeight)
     }
     
     output(0)

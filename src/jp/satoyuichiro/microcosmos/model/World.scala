@@ -150,6 +150,17 @@ object World {
     World(tem.cells, plants, carns, herbs, width, height)
   }
   
+  val learnInit = (bio: Bio) => bio match {
+    case p: Plant => p
+    case h: Herbivore => h.setLearningTrue
+    case c: Carnivore => c.setLearningTrue
+  }
+  
+  def initLearning(width: Int, height: Int): World = {
+    val world = init(width, height)
+    World(world.getBios map learnInit, width, height)
+  }
+  
   def empty: World = {
     World(List.empty[Bio],1,1)
   }

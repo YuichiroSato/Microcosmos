@@ -9,12 +9,12 @@ import jp.satoyuichiro.microcosmos.model.learning.StateActionFunction
 case class Herbivore(override val external: External, override val internal: Internal, override val velocity: Velocity, var learningInfo: LearningInfo)
   extends Animal(external, internal, velocity) {
 
-  def evolve: Bio = setExternal(move, external.appearance).setInternal(internal.life - 1, internal.water, internal.mineral)
+  def evolve: Bio = setExternal(move, external.appearance).setLife(_ - 1)
   
   def interact(world: World): World = chooseAction(giveBirthHerbivore(eatPlant(world)))
   
   val filterf = (bio: Bio) => bio.isInstanceOf[Plant]
-  val updatef = () => setInternal(internal.life + Herbivore.lifeUp, internal.water, internal.mineral)
+  val updatef = () => setLife(_ + Herbivore.lifeUp)
   
   def eatPlant(world: World): World = {
     eat(world, filterf, updatef)
@@ -22,7 +22,7 @@ case class Herbivore(override val external: External, override val internal: Int
 
   val condition = () => Herbivore.giveBirthLife < internal.life
   val born = () => Herbivore(external.coordinates.x, external.coordinates.y)
-  val update2 = () => setInternal(internal.life - Herbivore.giveBirthCost, internal.water, internal.mineral)
+  val update2 = () => setLife(_ - Herbivore.giveBirthCost)
   
   def giveBirthHerbivore(world: World) = {
     giveBirth(world, condition, born, update2)
@@ -32,21 +32,35 @@ case class Herbivore(override val external: External, override val internal: Int
   
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
-      val subWorld = world.getSubWorldAround(this, 40, 40)
-      val action = StateActionFunction.herbivoreAction(subWorld, this)
-      val nextVelocity = Action.herbivoreAction(action, velocity)
-      val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action)
-      val herb = Herbivore(external, internal, nextVelocity, nextLearningInfo)
-      world.remove(this)
-      world.add(herb)
+      if (learningInfo.learning) {
+        val subWorld = world.getSubWorldAround(this, 40, 40)
+        val action = Qlearning.herbivoreAction(subWorld, this)
+        val nextVelocity = Action.herbivoreAction(action, velocity)
+        val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action, true)
+        val herb = new Herbivore(external, internal, nextVelocity, nextLearningInfo)
+        Qlearning.herbivoreLearn(this, herb)
+        world.remove(this)
+        world.add(herb)
+      } else {
+        val subWorld = world.getSubWorldAround(this, 40, 40)
+        val action = StateActionFunction.herbivoreAction(subWorld, this)
+        val nextVelocity = Action.herbivoreAction(action, velocity)
+        val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action)
+        val herb = Herbivore(external, internal, nextVelocity, nextLearningInfo)
+        world.remove(this)
+        world.add(herb)
+      }
     }
     learningInfo = learningInfo.decriment
     world
   }
   
-  def setExternal(e: External): Herbivore = Herbivore(e, internal, velocity, learningInfo)
-  def setExternal(c: Coordinates, a: Appearance): Herbivore = Herbivore(External(c, a), internal, velocity, learningInfo)
-  def setInternal(l: Int, w: Int, m: Int): Herbivore = Herbivore(external, Internal(l, w, m), velocity, learningInfo)
+  def setExternal(e: External): Herbivore = copy(external = e)
+  def setExternal(c: Coordinates, a: Appearance): Herbivore = copy(external = External(c, a))
+  def setInternal(l: Int, w: Int, m: Int): Herbivore = copy(internal = Internal(l, w, m))
+  def setLife(l: Int): Herbivore = copy(internal = Internal(l, internal.water, internal.mineral))
+  def setLife(f: Int => Int): Herbivore = setLife(f(internal.life))
+  def setLearningTrue: Herbivore = copy(learningInfo = learningInfo.setLearningTrue)
 }
 
 object Herbivore {
@@ -64,6 +78,8 @@ object Herbivore {
     val learningInfo = LearningInfo((learningInterval * Math.random()).toInt, World.empty, Herbivore.empty, Action.maxValue)
     Herbivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, learningInfo)
   }
+  
+  def learning(x: Int, y: Int): Herbivore = apply(x, y).setLearningTrue
 
   def empty: Herbivore = {
     val external = External(Coordinates(0,0,0), Appearance(0, Color.RED))

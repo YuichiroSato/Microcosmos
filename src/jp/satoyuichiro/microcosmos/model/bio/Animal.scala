@@ -2,6 +2,9 @@ package jp.satoyuichiro.microcosmos.model.bio
 
 import jp.satoyuichiro.microcosmos.model.World
 
+import scalaz._
+import Scalaz._
+
 abstract class Animal(override val external: External, override val internal: Internal, val velocity: Velocity) extends Bio(external, internal){
 
   def move: Coordinates = {
@@ -45,7 +48,8 @@ abstract class Animal(override val external: External, override val internal: In
 }
 
 case class Velocity(val speed: Double, val rotation: Double)
-case class LearningInfo(val count: Int, val subWorld: World, val animal: Animal, val action: Int) {
+case class LearningInfo(val count: Int, val subWorld: World, val animal: Animal, val action: Int, val learning: Boolean = false) {
   
-  def decriment: LearningInfo = LearningInfo(count - 1, subWorld, animal, action)
+  def decriment: LearningInfo = copy(count = count - 1)
+  def setLearningTrue: LearningInfo = copy(learning = true)
 }

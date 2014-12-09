@@ -9,6 +9,9 @@ import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 import scala.collection.immutable.Queue
 import jp.satoyuichiro.microcosmos.model.bio.Animal
 
+import scalaz._
+import Scalaz._
+
 object Qlearning {
 
   private var carnivoreQ = null: Qvalue
@@ -26,6 +29,18 @@ object Qlearning {
 
     carnivoreLookUp = carnivoreQ.initLookUpTable
     herbivoreLookUp = herbivoreQ.initLookUpTable
+  }
+  
+  def herbivoreLearn(herbivore0: LearningHerbivore, herbivore1: LearningHerbivore): Unit = {
+    val h0 = Herbivore(herbivore0.external, herbivore0.internal, herbivore0.velocity, herbivore0.learningInfo)
+    val h1 = Herbivore(herbivore1.external, herbivore1.internal, herbivore1.velocity, herbivore1.learningInfo)
+    herbivoreLearn(h0, h1)
+  }
+  
+  def carnivoreLearn(carnivore0: LearningCarnivore, carnivore1: LearningCarnivore): Unit = {
+    val c0 = null: Carnivore
+    val c1 = null: Carnivore
+    carnivoreLearn(c0, c1)
   }
 
   def herbivoreLearn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
@@ -64,16 +79,14 @@ object Qlearning {
     val oldQ = herbivoreQ.values.getOrElse(targetQ, Qvalue.initValue)
     herbivoreQ.pickUp.get(targetState) match {
       case Some(candidateQ) if 0 < candidateQ.size =>
-        val start = System.currentTimeMillis()
         val maxQ = (candidateQ maxBy (_._2))._2
-        System.out.println(System.currentTimeMillis() - start)
         val newQ = oldQ + alpha * (reward + gamma * maxQ - oldQ)
         if (herbivoreLookUp.getOrElse(targetQ._1, Int.MinValue) < newQ) {
           herbivoreLookUp += targetQ._1 -> targetQ._2
         }
         herbivoreQ.upadte(targetQ, newQ)
-//        println("herb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
-      case None => 
+        println("herb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
+      case None =>
     }
   }
 
@@ -88,7 +101,7 @@ object Qlearning {
           carnivoreLookUp += targetQ._1 -> targetQ._2
         }
         carnivoreQ.upadte(targetQ, newQ)
-//        println("herb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
+        println("carb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
       case None => 
     }
   }
@@ -109,6 +122,16 @@ object Qlearning {
     } else {
       carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, carnivore), Action.maxValue)
     }
+  }
+  
+  def herbivoreAction(subWorld: World, herbivore: LearningHerbivore): Int = {
+    val h = Herbivore(herbivore.external, herbivore.internal, herbivore.velocity, herbivore.learningInfo)
+    herbivoreAction(subWorld, h)
+  }
+  
+  def carnivoreAction(subWorld: World, carnivore: LearningCarnivore): Int = {
+    val c = Carnivore(carnivore.external, carnivore.internal, carnivore.velocity, carnivore.learningInfo)
+    carnivoreAction(subWorld, c)
   }
   
   def getCarniveorLookUp: Map[State, Int] = carnivoreLookUp
