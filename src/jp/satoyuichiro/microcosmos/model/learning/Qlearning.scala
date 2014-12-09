@@ -30,18 +30,6 @@ object Qlearning {
     carnivoreLookUp = carnivoreQ.initLookUpTable
     herbivoreLookUp = herbivoreQ.initLookUpTable
   }
-  
-  def herbivoreLearn(herbivore0: LearningHerbivore, herbivore1: LearningHerbivore): Unit = {
-    val h0 = Herbivore(herbivore0.external, herbivore0.internal, herbivore0.velocity, herbivore0.learningInfo)
-    val h1 = Herbivore(herbivore1.external, herbivore1.internal, herbivore1.velocity, herbivore1.learningInfo)
-    herbivoreLearn(h0, h1)
-  }
-  
-  def carnivoreLearn(carnivore0: LearningCarnivore, carnivore1: LearningCarnivore): Unit = {
-    val c0 = null: Carnivore
-    val c1 = null: Carnivore
-    carnivoreLearn(c0, c1)
-  }
 
   def herbivoreLearn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
     val state0 = State(herbivore0.learningInfo.subWorld, herbivore0)
@@ -122,16 +110,6 @@ object Qlearning {
     } else {
       carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, carnivore), Action.maxValue)
     }
-  }
-  
-  def herbivoreAction(subWorld: World, herbivore: LearningHerbivore): Int = {
-    val h = Herbivore(herbivore.external, herbivore.internal, herbivore.velocity, herbivore.learningInfo)
-    herbivoreAction(subWorld, h)
-  }
-  
-  def carnivoreAction(subWorld: World, carnivore: LearningCarnivore): Int = {
-    val c = Carnivore(carnivore.external, carnivore.internal, carnivore.velocity, carnivore.learningInfo)
-    carnivoreAction(subWorld, c)
   }
   
   def getCarniveorLookUp: Map[State, Int] = carnivoreLookUp
