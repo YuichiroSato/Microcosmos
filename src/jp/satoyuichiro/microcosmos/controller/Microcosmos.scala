@@ -6,9 +6,8 @@ import java.awt.Graphics
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
 import java.awt.Toolkit
-import jp.satoyuichiro.microcosmos.model.learning.Qlearning
-import jp.satoyuichiro.microcosmos.model.learning.StateActionFunction
-import jp.satoyuichiro.microcosmos.model.learning.State
+import jp.satoyuichiro.microcosmos.model.learning._
+import jp.satoyuichiro.microcosmos.model.learning.S
 import java.io.FileInputStream
 import java.io.ObjectInputStream
 import scala.io.Source
@@ -37,12 +36,12 @@ object Microcosmos extends JFrame with Runnable {
     this.setVisible(true)
     this.show()
     val map = readMap(0)
-    StateActionFunction.setCarnivoreQ(map._1)
-    StateActionFunction.setHerbivoreQ(map._2)
+    CarnivoreQlearning.setValue(map._1)
+    HerbivoreQlearning.setValue(map._2)
   }
   
-  def readMap(count: Int): Tuple2[Map[State, Int], Map[State, Int]] = {
-    if (count < 0) return (Map.empty[State, Int], Map.empty[State, Int])
+  def readMap(count: Int): Tuple2[StateActionValue, StateActionValue] = {
+    if (count < 0) return (StateActionValue.empty, StateActionValue.empty)
     
     val cFileName = filePathC + fileCount.toString + ".txt"
     val hFileName = filePathH + fileCount.toString + ".txt"
@@ -57,12 +56,12 @@ object Microcosmos extends JFrame with Runnable {
 	  val hStream = new ObjectInputStream(hFile)
     
       try {
-        val cmap = cStream.readObject().asInstanceOf[Map[State, Int]]
-        val hmap = hStream.readObject().asInstanceOf[Map[State, Int]]
+        val cmap = cStream.readObject().asInstanceOf[StateActionValue]
+        val hmap = hStream.readObject().asInstanceOf[StateActionValue]
             
         (cmap, hmap)
       } catch {
-        case _: Throwable => (Map.empty[State, Int], Map.empty[State, Int])
+        case _: Throwable => (StateActionValue.empty, StateActionValue.empty)
       } finally {
         cStream.close()
         hStream.close()
@@ -83,8 +82,8 @@ object Microcosmos extends JFrame with Runnable {
         world = World.init(fieldWidth, fieldHeight)
         fileCount += 1
         val map = readMap(fileCount)
-        StateActionFunction.setCarnivoreQ(map._1)
-        StateActionFunction.setHerbivoreQ(map._2)
+        CarnivoreQlearning.setValue(map._1)
+        HerbivoreQlearning.setValue(map._2)
       }
       render()
       Thread.sleep(sleepTime)

@@ -3,8 +3,7 @@ package jp.satoyuichiro.microcosmos.model.bio
 import jp.satoyuichiro.microcosmos.model.World
 import java.awt.Color
 import jp.satoyuichiro.microcosmos.model.learning.Action
-import jp.satoyuichiro.microcosmos.model.learning.Qlearning
-import jp.satoyuichiro.microcosmos.model.learning.StateActionFunction
+import jp.satoyuichiro.microcosmos.model.learning._
 
 case class Herbivore(override val external: External, override val internal: Internal, override val velocity: Velocity, var learningInfo: LearningInfo)
   extends Animal(external, internal, velocity) {
@@ -33,17 +32,17 @@ case class Herbivore(override val external: External, override val internal: Int
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
       if (learningInfo.learning) {
-        val subWorld = world.getSubWorldAround(this, 40, 40)
-        val action = Qlearning.herbivoreAction(subWorld, this)
+        val subWorld = world.getSubWorldAround(this, 20, 20)
+        val action = HerbivoreQlearning.action(subWorld, this)
         val nextVelocity = Action.herbivoreAction(action, velocity)
         val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action, true)
         val herb = new Herbivore(external, internal, nextVelocity, nextLearningInfo)
-        Qlearning.herbivoreLearn(this, herb)
+        HerbivoreQlearning.learn(this, herb)
         world.remove(this)
         world.add(herb)
       } else {
-        val subWorld = world.getSubWorldAround(this, 40, 40)
-        val action = StateActionFunction.herbivoreAction(subWorld, this)
+        val subWorld = world.getSubWorldAround(this, 20, 20)
+        val action = HerbivoreQlearning.getBestAction(subWorld, this)
         val nextVelocity = Action.herbivoreAction(action, velocity)
         val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action)
         val herb = Herbivore(external, internal, nextVelocity, nextLearningInfo)

@@ -13,15 +13,14 @@ object StateActionFunctionGenerator {
   val fieldHeight = 600
   
   def main(args: Array[String]): Unit = {
-    val n = 10000
-    Qlearning.init
+    val n = 1000
     var world = World.initLearning(fieldWidth, fieldHeight)
     for (i <- 1 to n) {println(i)
       world = world.update
-      Qlearning.update()
       if (world.isEnd) world = World.initLearning(fieldWidth, fieldHeight)
     }
     
+    Qlearning.learningRasio()
     output(0)
   }
   
@@ -29,11 +28,11 @@ object StateActionFunctionGenerator {
     try {
       val cFile = new FileOutputStream(filePathc + count.toString + ".txt")
 	  val cStream = new ObjectOutputStream(cFile)
-	  cStream.writeObject(Qlearning.getCarniveorLookUp)
+	  cStream.writeObject(CarnivoreQlearning.getValue)
 
       val hFile = new FileOutputStream(filePathh + count.toString + ".txt")
 	  val hStream = new ObjectOutputStream(hFile)
-	  hStream.writeObject(Qlearning.getHerbivoreLookUp)
+	  hStream.writeObject(HerbivoreQlearning.getValue)
 	  
 	  cStream.close()
 	  cFile.close()

@@ -14,176 +14,168 @@ import Scalaz._
 
 object Qlearning {
 
-  private var carnivoreQ = null: Qvalue
-  private var herbivoreQ = null: Qvalue
-
-  private var carnivoreLookUp = Map.empty[State, Int]
-  private var herbivoreLookUp = Map.empty[State, Int]
-
-  private var carnivoreInput = Queue.empty[Tuple4[State, Int, State, Int]]
-  private var herbivoreInput = Queue.empty[Tuple4[State, Int, State, Int]]
-
-  def init: Unit = {
-    carnivoreQ = Qvalue.init
-    herbivoreQ = Qvalue.init
-
-    carnivoreLookUp = carnivoreQ.initLookUpTable
-    herbivoreLookUp = herbivoreQ.initLookUpTable
-  }
-
-  def herbivoreLearn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
-    val state0 = State(herbivore0.learningInfo.subWorld, herbivore0)
-    val action = herbivore0.learningInfo.action
-    val state1 = State(herbivore1.learningInfo.subWorld, herbivore1)
-    val reward = herbivore1.internal.life - herbivore0.learningInfo.animal.internal.life
-    herbivoreInput = herbivoreInput.enqueue((state0, action, state1, reward))
-  }
-
-  def carnivoreLearn(carnivore0: Carnivore, carnivore1: Carnivore): Unit = {
-    val state0 = State(carnivore0.learningInfo.subWorld, carnivore0)
-    val action = carnivore0.learningInfo.action
-    val state1 = State(carnivore1.learningInfo.subWorld, carnivore1)
-    val reward = carnivore1.internal.life - carnivore0.learningInfo.animal.internal.life
-    carnivoreInput = carnivoreInput.enqueue((state0, action, state1, reward))
+  def toData(animal0: Animal, animal1: Animal): (S, Int, S, Int) = {
+    if (animal0.isInstanceOf[Carnivore]) {
+      val hoge0 = animal0.asInstanceOf[Carnivore]
+      val hoge1 = animal1.asInstanceOf[Carnivore]
+      
+      val state0 = S(hoge0.learningInfo.subWorld, hoge0)
+      val action = hoge0.learningInfo.action
+      val state1 = S(hoge1.learningInfo.subWorld, hoge1)
+      val reward = hoge1.internal.life - hoge0.learningInfo.animal.internal.life
+    
+      (state0, action, state1, reward)
+    } else {
+      val hoge0 = animal0.asInstanceOf[Herbivore]
+      val hoge1 = animal1.asInstanceOf[Herbivore]
+      
+      val state0 = S(hoge0.learningInfo.subWorld, hoge0)
+      val action = hoge0.learningInfo.action
+      val state1 = S(hoge1.learningInfo.subWorld, hoge1)
+      val reward = hoge1.internal.life - hoge0.learningInfo.animal.internal.life
+      
+      (state0, action, state1, reward)
+    }
   }
     
-  def update(): Unit = {
-    val start = System.currentTimeMillis()
-    for(elem <- herbivoreInput) {
-      herbivoreUpdate(elem._1, elem._2, elem._3, elem._4)
-    }
-    for(elem <- carnivoreInput) {
-      carnivoreUpdate(elem._1, elem._2, elem._3, elem._4)
-    }
-    herbivoreInput = Queue.empty[Tuple4[State, Int, State, Int]]
-    carnivoreInput = Queue.empty[Tuple4[State, Int, State, Int]]
+  def update(a0: Animal, a1: Animal): State[StateActionValue, Unit] = {
+    val data = toData(a0, a1)
+    val currentState = data._3
+    for {
+      avMap <- getAVMap(currentState)
+      result <- branch(avMap, data)
+    } yield result
   }
-
+  
+  def getOldValue(s: S, a: Int) = State[StateActionValue, Double] {
+    sav => (sav, sav.SA_Value.getOrElse((s,a), StateActionValue.initValue))
+  }
+  
+  def getAVMap(s: S) = State[StateActionValue, Map[Int, Double]] {
+    sav => (sav, sav.S_AValue.getOrElse(s, Map.empty[Int, Double]))
+  }
+  
+  def branch(avMap: Map[Int, Double], data: (S, Int, S, Int)): State[StateActionValue, Unit] = {
+    val (targetState, action, currentState, reward) = data
+    if (avMap.isEmpty)
+      for {
+        result <- State[StateActionValue, Unit] { sav => (sav.update(targetState, action, StateActionValue.initValue), ()) }
+      } yield result
+    else
+      for {
+        oldValue <- getOldValue(targetState, action)
+        maxValue <- getMaxValue(avMap)
+        result <- updateValue(targetState, oldValue, action, reward, maxValue)
+      } yield result
+  }
+  
+  def getMaxValue(map: Map[Int, Double]) = State[StateActionValue, Double] {
+    sav => (sav, if (map.isEmpty) Double.MinValue else map.maxBy(_._2)._2)
+  }
+  
+  def updateValue(targetState: S, oldValue: Double, action: Int, reward: Double, maxValue: Double) = State[StateActionValue, Unit] {
+    sav => (sav.update(targetState, action, calculateNewValue(oldValue, reward, maxValue)), ())
+  }
+  
   val alpha = 0.1
   val gamma = 0.9
+  
+  def calculateNewValue(oldValue: Double, reward: Double, maxValue: Double): Double = oldValue + alpha * (reward + gamma * maxValue - oldValue)
 
-  def herbivoreUpdate(targetState: State, action: Int, currentState: State, reward: Int): Unit = {
-    val targetQ = (targetState, action)
-    val oldQ = herbivoreQ.values.getOrElse(targetQ, Qvalue.initValue)
-    herbivoreQ.pickUp.get(targetState) match {
-      case Some(candidateQ) if 0 < candidateQ.size =>
-        val maxQ = (candidateQ maxBy (_._2))._2
-        val newQ = oldQ + alpha * (reward + gamma * maxQ - oldQ)
-        if (herbivoreLookUp.getOrElse(targetQ._1, Int.MinValue) < newQ) {
-          herbivoreLookUp += targetQ._1 -> targetQ._2
-        }
-        herbivoreQ.upadte(targetQ, newQ)
-        println("herb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
-      case None =>
-    }
+  def toState(subWorld: World, animal: Animal): S = {
+    S(subWorld, animal)
   }
+  
+  val epsilon = 0.5
+  
+  def learningRasio(): Unit = {
+    println("carn " + CarnivoreQlearning.learningRasio)
+    println("herb " + HerbivoreQlearning.learningRasio)
+  }
+  
+}
 
-  def carnivoreUpdate(targetState: State, action: Int, currentState: State, reward: Int): Unit = {
-    val targetQ = (targetState, action)
-    val oldQ = carnivoreQ.values.getOrElse(targetQ, Qvalue.initValue)
-    carnivoreQ.pickUp.get(targetState) match {
-      case Some(candidateQ) if 0 < candidateQ.size=>
-        val maxQ = (candidateQ maxBy (_._2))._2
-        val newQ = oldQ + alpha * (reward + gamma * maxQ - oldQ)
-        if (carnivoreLookUp.getOrElse(targetQ._1, Int.MinValue) < newQ) {
-          carnivoreLookUp += targetQ._1 -> targetQ._2
-        }
-        carnivoreQ.upadte(targetQ, newQ)
-        println("carb " + targetQ._2 + " r " + reward +" new " + newQ + " old "+ oldQ + " max " + maxQ)
-      case None => 
+object HerbivoreQlearning {
+  
+  private var stateActionValue = StateActionValue.empty
+  
+  def learn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
+    stateActionValue = Qlearning.update(herbivore0, herbivore1).exec(stateActionValue)
+  }
+  
+  def action(subWorld: World, herbivore: Herbivore): Int = {
+    if (Qlearning.epsilon < Math.random()) {
+      (Action.maxValue * Math.random()).toInt
+    } else {
+      stateActionValue.getBestAction(Qlearning.toState(subWorld, herbivore))
     }
   }
   
-  val epsilon = 0.1
+  def getBestAction(subWorld: World, herbivore: Herbivore): Int = stateActionValue.getBestAction(Qlearning.toState(subWorld, herbivore))
+  
+  def getValue: StateActionValue = stateActionValue
+  def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
+  
+  def learningRasio: String = stateActionValue.bestAction.size + " " + stateActionValue.bestAction
+}
 
-  def herbivoreAction(subWorld: World, herbivore: Herbivore): Int = {
-    if (epsilon < Math.random()) {
+object CarnivoreQlearning {
+  
+  private var stateActionValue = StateActionValue.empty
+
+  def learn(carnivore0: Carnivore, carnivore1: Carnivore): Unit = {
+    stateActionValue = Qlearning.update(carnivore0, carnivore1).exec(stateActionValue)
+  }
+  
+  def action(subWorld: World, carnivore: Carnivore): Int = {
+    if (Qlearning.epsilon < Math.random()) {
       (Action.maxValue * Math.random()).toInt
     } else {
-      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, herbivore), Action.maxValue)
+      stateActionValue.getBestAction(Qlearning.toState(subWorld, carnivore))
     }
   }
 
-  def carnivoreAction(subWorld: World, carnivore: Carnivore): Int = {
-    if (epsilon < Math.random()) {
-      (Action.maxValue * Math.random()).toInt
-    } else {
-      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, carnivore), Action.maxValue)
+  def getBestAction(subWorld: World, carnivore: Carnivore): Int = stateActionValue.getBestAction(Qlearning.toState(subWorld, carnivore))
+  
+  def getValue: StateActionValue = stateActionValue
+  def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
+
+  def learningRasio: String = stateActionValue.bestAction.size + " " + stateActionValue.bestAction
+}
+
+// (Environment State 4 * 9) * (Internal State 4 * 3) * (Action 7) = (Qvalue 3024)
+case class StateActionValue(SA_Value: Map[(S, Int), Double], S_AValue: Map[S, Map[Int, Double]], bestAction: Map[S, Int]) {
+  
+  def update(s: S, a: Int, value: Double): StateActionValue = putSA_Value((s,a), value).putS_AValue(s, a, value).putBestAction(s, a, value)
+  
+  def putSA_Value(sa: (S, Int), value: Double): StateActionValue = copy(SA_Value = this.SA_Value + (sa -> value))
+  
+  def putS_AValue(s: S, a: Int, value: Double): StateActionValue = copy(S_AValue = this.S_AValue + (s -> putAValue(s, a, value)))
+  
+  def putAValue(s: S, a: Int, value: Double): Map[Int, Double] = S_AValue.getOrElse(s, Map.empty[Int, Double]) + (a -> value)
+  
+  def putBestAction(s: S, a: Int, value: Double): StateActionValue = {
+    if (!bestAction.contains(s)) return copy(bestAction = this.bestAction + (s -> a))
+    
+    S_AValue.get(s) match {
+      case Some(map) =>
+        val max = map.maxBy(_._2)._2
+        if (max <= value)
+          copy(bestAction = this.bestAction + (s -> a))
+        else
+          this
+      case None => copy(bestAction = this.bestAction + (s -> a))
     }
   }
   
-  def getCarniveorLookUp: Map[State, Int] = carnivoreLookUp
-  def getHerbivoreLookUp: Map[State, Int] = herbivoreLookUp
+  def getBestAction(s: S): Int = bestAction.getOrElse(s, (Action.maxValue * Math.random()).toInt)
 }
 
-// (State 4 * 9 * 16 * 6) * (Action 7) = (Qvalue 24192)
-case class Qvalue(var values: Map[Tuple2[State, Int], Double], var pickUp: Map[State, Map[Int, Double]]) {
-
-  def initLookUpTable: Map[State, Int] = {
-    State.allStates map (state => state -> Action.maxValue) toMap
-  }
-
-  def upadte(target: Tuple2[State, Int], value: Double): Unit = {
-    values += target -> value
-    var subPickUp = pickUp.getOrElse(target._1, Map.empty[Int, Double])
-    subPickUp += target._2 -> value
-    pickUp += target._1 -> subPickUp
-  }
-}
-
-object Qvalue {
-
+object StateActionValue {
+  
   val initValue = 100.0
-
-  def init: Qvalue = {
-    val values = State.allStates flatMap (s => makePair(s, Action.index)) map (t => t -> initValue) toMap
-    var pickUp = Map.empty[State, Map[Int, Double]]
-    values foreach {
-      tuple =>
-        val state = tuple._1._1
-        val actionValueMap = (Action.index map (i => i -> initValue)).toMap
-        pickUp += state -> actionValueMap
-    }
-    Qvalue(values, pickUp)
-  }
-
-  def makePair(state: State, ls: List[Int]): List[Tuple2[State, Int]] = {
-    ls map (i => (state, i))
-  }
-
-  def toState(subWorld: World, animal: Animal): State = {
-    State(subWorld, animal)
-  }
-
-  def stateToActionValue(qvalue: Qvalue, state: State): List[Tuple2[Int, Double]] = {
-    qvalue.values filter (_._1._1 == state) map (t => (t._1._2, qvalue.values.getOrElse(t._1, 0.0))) toList
-  }
-
-  def bestAction(qvalue: Qvalue, state: State): Int = {
-    val actionValue = stateToActionValue(qvalue, state)
-    if (0 < actionValue.size) {
-      actionValue.maxBy(_._2)._1
-    } else {
-      Action.maxValue
-    }
-  }
-}
-
-object StateActionFunction {
   
-  private var carnivoreLookUp = Map.empty[State, Int]
-  private var herbivoreLookUp = Map.empty[State, Int]
-
-  def setHerbivoreQ(map: Map[State, Int]): Unit = herbivoreLookUp = map
-  def setCarnivoreQ(map: Map[State, Int]): Unit = carnivoreLookUp = map
-  
-  def herbivoreAction(subWorld: World, hervibore: Herbivore): Int = {
-      herbivoreLookUp.getOrElse(Qvalue.toState(subWorld, hervibore), (Action.maxValue * Math.random()).toInt)
-  }
-
-  def carnivoreAction(subWorld: World, carnivore: Carnivore): Int = {
-      carnivoreLookUp.getOrElse(Qvalue.toState(subWorld, carnivore), (Action.maxValue * Math.random()).toInt)
-  }
+  def empty: StateActionValue = StateActionValue(Map.empty[(S, Int), Double], Map.empty[S, Map[Int, Double]], Map.empty[S, Int])
 }
 
 //        |
@@ -193,13 +185,11 @@ object StateActionFunction {
 //        |
 //   bl   |   br
 //        |
-case class State(val ul: SubState, val ur: SubState, val bl: SubState, val br: SubState, val bs: BioState)
-case class SubState(val plant: Boolean, val herbivore: Boolean, val carnivore: Boolean)
-case class BioState(val ulAhead: Boolean, val urAhead: Boolean, val blAhead: Boolean, val brAhead: Boolean, val speed: Int)
+case class S(ul: SubState, ur: SubState, bl: SubState, br: SubState, bs: BioState)
 
-object State {
-
-  def apply(subWorld: World, animal: Animal): State = {
+object S {
+  
+  def apply(subWorld: World, animal: Animal): S = {
     try {
       val width = subWorld.cells.size
       val height = subWorld.cells(0).size
@@ -211,9 +201,9 @@ object State {
       val bl = subWorldToSubState(subWorld, 0, h, w, h)
       val br = subWorldToSubState(subWorld, w, h, w, h)
       
-      State(ul, ur, bl, br, BioState(animal))
+      S(ul, ur, bl, br, BioState(animal))
     } catch {
-      case _: Throwable => State(SubState.empty, SubState.empty, SubState.empty, SubState.empty, BioState.empty)
+      case _: Throwable => empty
     }
   }
   
@@ -237,13 +227,12 @@ object State {
     }
     SubState(pexists, hexists, cexists)
   }
-
-  def allStates: List[State] = {
-    val sall = SubState.allSubStates
-    val ball = BioState.allBioState
-    for (a <- sall; b <- sall; c <- sall; d <- sall; e <- ball) yield State(a, b, c, d, e)
-  }
+  
+  def empty: S = S(SubState.empty, SubState.empty, SubState.empty, SubState.empty, BioState.empty)
 }
+
+case class SubState(val plant: Boolean, val herbivore: Boolean, val carnivore: Boolean)
+case class BioState(val angleType: Int, val speed: Int)
 
 object SubState {
 
@@ -275,51 +264,37 @@ object SubState {
 }
 
 //        |
-//  ul    |   ur
+//    0   |    1
 //        |
 //-----------------
 //        |
-//   bl   |   br
+//    2   |    3
 //        |
 object BioState {
 
-  val maxSpeedType = 5
-
-  def apply(ls: List[Boolean]): BioState = {
-    if (ls.size == 4) {
-      BioState(ls.head, ls.drop(1).head, ls.drop(2).head, ls.drop(3).head, 0)
-    } else {
-      empty
-    }
-  }
-
-  def apply(ls: List[Boolean], speedType: Int): BioState = {
-    if (ls.size == 4) {
-      BioState(ls.head, ls.drop(1).head, ls.drop(2).head, ls.drop(3).head, speedType)
-    } else {
-      empty
-    }
-  }
+  val maxSpeedType = 2
+  val maxAngleType = 4
 
   def apply(animal: Animal): BioState = {
-    val angle = animal.external.coordinates.angle
-    val ul = 0 < angle && angle <= Math.PI / 2
-    val ur = Math.PI / 2 < angle && angle <= Math.PI
-    val bl = Math.PI < angle && angle <= 3 * Math.PI / 2
-    val br = 3 * Math.PI / 2 < angle && angle <= 0
-    BioState(ul, ur, bl, br, speedType(animal.velocity.speed))
+    val angle = animal.external.coordinates.angle % (2 * Math.PI)
+    val angleType = angle match {
+      case _ if (angle <= Math.PI / 2) => 0
+      case _ if (Math.PI / 2 < angle && angle <= Math.PI) => 1
+      case _ if (Math.PI < angle && angle <= 3 * Math.PI / 2) => 2
+      case _ => 3
+    }
+    BioState(speedType(animal.velocity.speed), angleType)
   }
 
-  def speedType(speed: Double): Int = if (maxSpeedType < speed) maxSpeedType else speed.abs.toInt
+  def speedType(speed: Double): Int = if (maxSpeedType < speed.abs) maxSpeedType else speed.abs.toInt
 
   def allBioState: List[BioState] = {
-    val tf = List(true, false)
     val speedTypes = (0 to maxSpeedType).toList
-    val all = for (a <- tf; b <- tf; c <- tf; d <- tf) yield List(a, b, c, d)
-    all flatMap (ls => speedTypes map (s => BioState(ls, s)))
+    val angleTypes = (0 to maxAngleType).toList
+    for (a <- angleTypes; s <- speedTypes) yield BioState(s, a)
   }
 
-  def empty: BioState = BioState(false, false, false, false, 0)
+  def empty: BioState = BioState(0, 0)
 }
 
 object Action {

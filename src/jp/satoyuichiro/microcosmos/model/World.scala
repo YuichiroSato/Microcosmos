@@ -107,7 +107,7 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
   def getSubWorldAround(bio: Bio, w: Int, h: Int): World = {
     val x = bio.external.coordinates.x
     val y = bio.external.coordinates.y
-    getSubWorld(x, y, w, h)
+    World(World.removeABio(bio, getSubWorld(x, y, w, h).getBios), w, h)
   }
 }
 
