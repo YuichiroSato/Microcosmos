@@ -32,16 +32,16 @@ case class Herbivore(override val external: External, override val internal: Int
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
       if (learningInfo.learning) {
-        val subWorld = world.getSubWorldAround(this, 20, 20)
+        val subWorld = world.getSubWorldAround(this, 40, 40)
         val action = HerbivoreQlearning.action(subWorld, this)
         val nextVelocity = Action.herbivoreAction(action, velocity)
         val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action, true)
         val herb = new Herbivore(external, internal, nextVelocity, nextLearningInfo)
-        HerbivoreQlearning.learn(this, herb)
+        HerbivoreQlearning.learn(learningInfo.animal.asInstanceOf[Herbivore], herb)
         world.remove(this)
         world.add(herb)
       } else {
-        val subWorld = world.getSubWorldAround(this, 20, 20)
+        val subWorld = world.getSubWorldAround(this, 40, 40)
         val action = HerbivoreQlearning.getBestAction(subWorld, this)
         val nextVelocity = Action.herbivoreAction(action, velocity)
         val nextLearningInfo = LearningInfo(Herbivore.learningInterval, subWorld, this, action)
@@ -68,7 +68,7 @@ object Herbivore {
   val giveBirthLife = 4000
   val initLife = 100
   val giveBirthCost = 2000
-  val learningInterval = 19
+  val learningInterval = 10
   
   def apply(x: Int, y: Int): Herbivore = {
     val coordinates = Coordinates(x,y, Math.random)

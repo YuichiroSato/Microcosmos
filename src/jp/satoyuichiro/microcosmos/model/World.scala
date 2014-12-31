@@ -96,18 +96,33 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
   
   def getSubWorld(x: Int, y: Int, w: Int, h: Int): World = {
     var subCells = Array.fill(w)(Array.fill(h)(Cell.empty))
+    var subPlants = List.empty[Plant]
+    var subCarnivores = List.empty[Carnivore]
+    var subHerbivores = List.empty[Herbivore]
     for (i <- 0 to w - 1) {
       for (j <- 0 to h - 1) {
-        if (0 <= x && 0 <= y && x + i < width && y + j < height) subCells(i)(j) = cells(x + i)(y + j)
+        val xi = x + i
+        val yi = y + j
+        if (0 <= xi && 0 <= yi && xi < width && yi < height) {
+          subCells(i)(j) = cells(xi)(yi)
+          cells(xi)(yi).bios foreach {
+            bio => bio match {
+              case p: Plant => subPlants ::= p
+              case c: Carnivore => subCarnivores ::= c
+              case h: Herbivore => subHerbivores ::= h
+            }
+          }
+        }
       }
     }
-    World(subCells, List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], w, h)
+    World(subCells, subPlants, subCarnivores, subHerbivores, w, h)
   }
   
   def getSubWorldAround(bio: Bio, w: Int, h: Int): World = {
-    val x = bio.external.coordinates.x
-    val y = bio.external.coordinates.y
-    World(World.removeABio(bio, getSubWorld(x, y, w, h).getBios), w, h)
+    val startx = bio.external.coordinates.x - (w.toDouble / 2.0).floor.toInt
+    val starty = bio.external.coordinates.y - (h.toDouble / 2.0).floor.toInt
+    val subWorld = World(this.getBios, this.width, this.height)
+    subWorld.remove(bio).getSubWorld(startx, starty, w, h)
   }
 }
 

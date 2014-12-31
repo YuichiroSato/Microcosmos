@@ -14,32 +14,32 @@ import Scalaz._
 
 object Qlearning {
 
-  def toData(animal0: Animal, animal1: Animal): (S, Int, S, Int) = {
-    if (animal0.isInstanceOf[Carnivore]) {
-      val hoge0 = animal0.asInstanceOf[Carnivore]
-      val hoge1 = animal1.asInstanceOf[Carnivore]
+  def toData(prev: Animal, current: Animal): (S, Int, S, Int) = {
+    val reward = current.internal.life - prev.internal.life
+    if (prev.isInstanceOf[Carnivore]) {
+      val hoge0 = prev.asInstanceOf[Carnivore]
+      val hoge1 = current.asInstanceOf[Carnivore]
       
       val state0 = S(hoge0.learningInfo.subWorld, hoge0)
       val action = hoge0.learningInfo.action
       val state1 = S(hoge1.learningInfo.subWorld, hoge1)
-      val reward = hoge1.internal.life - hoge0.learningInfo.animal.internal.life
     
       (state0, action, state1, reward)
     } else {
-      val hoge0 = animal0.asInstanceOf[Herbivore]
-      val hoge1 = animal1.asInstanceOf[Herbivore]
+      val hoge0 = prev.asInstanceOf[Herbivore]
+      val hoge1 = current.asInstanceOf[Herbivore]
       
       val state0 = S(hoge0.learningInfo.subWorld, hoge0)
       val action = hoge0.learningInfo.action
       val state1 = S(hoge1.learningInfo.subWorld, hoge1)
-      val reward = hoge1.internal.life - hoge0.learningInfo.animal.internal.life
       
       (state0, action, state1, reward)
     }
   }
     
-  def update(a0: Animal, a1: Animal): State[StateActionValue, Unit] = {
-    val data = toData(a0, a1)
+  def update(prev: Animal, current: Animal): State[StateActionValue, Unit] = {
+    val data = toData(prev, current)
+    println(data)
     val currentState = data._3
     for {
       avMap <- getAVMap(currentState)
@@ -58,23 +58,26 @@ object Qlearning {
   def branch(avMap: Map[Int, Double], data: (S, Int, S, Int)): State[StateActionValue, Unit] = {
     val (targetState, action, currentState, reward) = data
     if (avMap.isEmpty)
-      for {
-        result <- State[StateActionValue, Unit] { sav => (sav.update(targetState, action, StateActionValue.initValue), ()) }
-      } yield result
+      insertNewSA(targetState, action)
     else
       for {
         oldValue <- getOldValue(targetState, action)
         maxValue <- getMaxValue(avMap)
-        result <- updateValue(targetState, oldValue, action, reward, maxValue)
+        newValue <- State.state(calculateNewValue(oldValue, reward, maxValue))
+        result <- updateValue(targetState, action, newValue)
       } yield result
+  }
+  
+  def insertNewSA(targetState: S, action: Int) = State[StateActionValue, Unit] {
+    sav => (sav.update(targetState, action, StateActionValue.initValue), ())
   }
   
   def getMaxValue(map: Map[Int, Double]) = State[StateActionValue, Double] {
     sav => (sav, if (map.isEmpty) Double.MinValue else map.maxBy(_._2)._2)
   }
   
-  def updateValue(targetState: S, oldValue: Double, action: Int, reward: Double, maxValue: Double) = State[StateActionValue, Unit] {
-    sav => (sav.update(targetState, action, calculateNewValue(oldValue, reward, maxValue)), ())
+  def updateValue(targetState: S, action: Int, newValue: Double) = State[StateActionValue, Unit] {
+    sav => (sav.update(targetState, action, newValue), ())
   }
   
   val alpha = 0.1
@@ -144,7 +147,7 @@ object CarnivoreQlearning {
 }
 
 // (Environment State 4 * 9) * (Internal State 4 * 3) * (Action 7) = (Qvalue 3024)
-case class StateActionValue(SA_Value: Map[(S, Int), Double], S_AValue: Map[S, Map[Int, Double]], bestAction: Map[S, Int]) {
+case class StateActionValue(SA_Value: Map[(S, Int), Double], S_AValue: Map[S, Map[Int, Double]], bestAction: Map[S, Int]) extends Serializable {
   
   def update(s: S, a: Int, value: Double): StateActionValue = putSA_Value((s,a), value).putS_AValue(s, a, value).putBestAction(s, a, value)
   
@@ -185,7 +188,24 @@ object StateActionValue {
 //        |
 //   bl   |   br
 //        |
-case class S(ul: SubState, ur: SubState, bl: SubState, br: SubState, bs: BioState)
+case class S(ul: SubState, ur: SubState, bl: SubState, br: SubState, bs: BioState) {
+  
+  override def toString: String = {
+    val sul = subStateToString(ul)
+    val sur = subStateToString(ur)
+    val sbl = subStateToString(bl)
+    val sbr = subStateToString(br)
+    sul + sur + sbl + sbr + "-" + bs.speed + bs.angleType
+  }
+  
+  def subStateToString(subState: SubState): String = {
+    var res = 0
+    res += (if (subState.plant) 1 else 0)
+    res += (if (subState.herbivore) 2 else 0)
+    res += (if (subState.carnivore) 4 else 0)
+    res.toString
+  }
+}
 
 object S {
   

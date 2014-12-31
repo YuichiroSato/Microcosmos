@@ -9,7 +9,79 @@ import jp.satoyuichiro.microcosmos.model.learning._
 import jp.satoyuichiro.microcosmos.model.bio._
 
 class QlearningTest extends TestCase {
+  
+  val s1 = S.empty
+  val s2 = s1.copy(ur = SubState(true, true, false))
+  val s3 = s1.copy(ul = SubState(false, false, true), ur = SubState(true, true, true))
+  
+  val sav1 = StateActionValue(Map((s1, 1) -> 10.0), Map(s1 -> Map(1 -> 10.0)), Map(s1 -> 1))
+  val sav2 = StateActionValue(Map((s1,1) -> 10.0, (s1,2) -> 20.0, (s2,1) -> 20.0, (s2,2) -> 10.0),
+      Map(s1 -> Map(1 -> 10.0, 2 -> 20.0), s2 -> Map(1 -> 20.0, 2 -> 10.0)),
+      Map(s1 -> 2, s2 -> 1))
+    
+  @Test def testgetOldValue {
+    val res1 = Qlearning.getOldValue(s1, 1).eval(sav1)
+    assertEquals(true, 10.0 == res1)
 
+    val res2 = Qlearning.getOldValue(s1, 2).eval(sav1)
+    assertEquals(true, res2 == StateActionValue.initValue)
+
+    val res3 = Qlearning.getOldValue(s2, 1).eval(sav1)
+    assertEquals(true, res3 == StateActionValue.initValue)
+
+    val res4 = Qlearning.getOldValue(s1, 1).eval(sav2)
+    assertEquals(true, 10.0 == res4)
+
+    val res5 = Qlearning.getOldValue(s1, 2).eval(sav2)
+    assertEquals(true, res5 == 20.0)
+
+    val res6 = Qlearning.getOldValue(s3, 1).eval(sav2)
+    assertEquals(true, res6 == StateActionValue.initValue)
+  }
+  
+  @Test def testgetAVMap {
+    val res1 = Qlearning.getAVMap(s1).eval(sav1)
+    assertEquals(Map(1 -> 10.0), res1)
+    
+    val res2 = Qlearning.getAVMap(s2).eval(sav1)
+    assertEquals(Map.empty[S, Double], res2)
+    
+    val res3 = Qlearning.getAVMap(s1).eval(sav2)
+    assertEquals(Map(1 -> 10.0, 2 -> 20.0), res3)
+    
+    val res4 = Qlearning.getAVMap(s2).eval(sav2)
+    assertEquals(Map(1 -> 20.0, 2 -> 10.0), res4)
+  }
+  
+  @Test def testgetMaxValue {
+    val res1 = Qlearning.getMaxValue(Map(1 -> 20.0)).eval(sav1)
+    assertEquals(true, res1 == 20.0)
+    
+    val res2 = Qlearning.getMaxValue(Map(1 -> 20.0, 2 -> 30.0)).eval(sav1)
+    assertEquals(true, res2 == 30.0)
+  }
+  
+  @Test def testupdateValue {
+    val res1 = Qlearning.updateValue(s1, 1, 20.0).exec(sav1)
+    assertEquals(true, 20.0 == res1.SA_Value.get((s1,1)).get)
+    assertEquals(Map(1 -> 20.0), res1.S_AValue.get(s1).get)
+    assertEquals(1, res1.bestAction(s1))
+
+    val res2 = Qlearning.updateValue(s1, 2, 20.0).exec(sav1)
+    assertEquals(true, 20.0 == res2.SA_Value.get((s1,2)).get)
+    assertEquals(Map(1 -> 10.0, 2 -> 20.0), res2.S_AValue.get(s1).get)
+    assertEquals(2, res2.bestAction(s1))
+
+  }
+  
+  @Test def testcalculateNewValue {
+    val res1 = Qlearning.calculateNewValue(10.0, 10, 30.0)
+    assertEquals(true, res1 > 10.0)
+    
+    val res2 = Qlearning.calculateNewValue(10.0, -10, 10.0)
+    assertEquals(true, res2 < 10.0)
+    
+  }
   
   @Test def testState {
     val materials = (new Water(), new Mineral())
@@ -21,12 +93,12 @@ class QlearningTest extends TestCase {
     val subSubWorld1 = Array(cell1, cell1, cell1, cell1)
     val subWorld1 = World(Array(subSubWorld1, subSubWorld1, subSubWorld1, subSubWorld1), List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], 8, 8)
     val state1 = S(subWorld1, Carnivore.apply(2,2))
-    println(state1)
+    assertEquals("0000", state1.toString.substring(0, 4))
     
     val subSubWorld2 = Array(cell1, cell1, cell1, cell1)
     val subWorld2 = World(Array(Array(cell1, cell1, pcell, cell1), subSubWorld1, subSubWorld1, subSubWorld1), List.empty[Plant], List.empty[Carnivore], List.empty[Herbivore], 8, 8)
     val state2 = S(subWorld2, Carnivore.apply(2,2))
-    println(state2)
+    assertEquals("0010", state2.toString.substring(0, 4))
     
   }
   

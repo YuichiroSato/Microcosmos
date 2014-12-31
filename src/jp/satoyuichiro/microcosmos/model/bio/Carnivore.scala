@@ -32,16 +32,16 @@ case class Carnivore(override val external: External, override val internal: Int
   def chooseAction(world: World): World = {
     if (learningInfo.count < 0) {
       if (learningInfo.learning) {
-        val subWorld = world.getSubWorldAround(this, 20, 20)
+        val subWorld = world.getSubWorldAround(this, 40, 40)
         val action = CarnivoreQlearning.action(subWorld, this)
         val nextVelocity = Action.carnivoreAction(action, velocity)
         val nextLearnInfo = LearningInfo(Carnivore.learningInterval, subWorld, this, action, true)
         val carb = new Carnivore(external, internal, nextVelocity, nextLearnInfo)
-        CarnivoreQlearning.learn(this, carb)
+        CarnivoreQlearning.learn(learningInfo.animal.asInstanceOf[Carnivore], carb)
         world.remove(this)
         world.add(carb)
       } else {
-        val subWorld = world.getSubWorldAround(this, 20, 20)
+        val subWorld = world.getSubWorldAround(this, 40, 40)
         val action = CarnivoreQlearning.getBestAction(subWorld, this)
         val nextVelocity = Action.carnivoreAction(action, velocity)
         val nextLearnInfo = LearningInfo(Carnivore.learningInterval, subWorld, this, action)
@@ -68,7 +68,7 @@ object Carnivore {
   val giveBirthLife = 5000
   val initLife = 500
   val giveBirthCost = 4000
-  val learningInterval = 19
+  val learningInterval = 10
 
   def apply(x: Int, y: Int): Carnivore = {
     val coordinates = Coordinates(x, y, Math.random())
