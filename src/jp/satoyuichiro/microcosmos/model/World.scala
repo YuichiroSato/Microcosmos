@@ -84,7 +84,7 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     this
   }
   
-  def updateBio(from: Bio, to: Bio): World = remove(from).add(to)
+  def updateBio(from: Bio, to: Bio): World = if (plants.contains(from) || carnivores.contains(from) || herbivores.contains(from)) remove(from).add(to) else this
   
   def deppend(bio: Bio): Unit = {
     bio match {

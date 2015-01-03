@@ -15,31 +15,16 @@ import Scalaz._
 object Qlearning {
 
   def toData(prev: Animal, current: Animal): (S, Int, S, Int) = {
-    val reward = current.internal.life - prev.internal.life
-    if (prev.isInstanceOf[Carnivore]) {
-      val hoge0 = prev.asInstanceOf[Carnivore]
-      val hoge1 = current.asInstanceOf[Carnivore]
-      
-      val state0 = S(hoge0.learningInfo.subWorld, hoge0)
-      val action = hoge0.learningInfo.action
-      val state1 = S(hoge1.learningInfo.subWorld, hoge1)
-    
-      (state0, action, state1, reward)
-    } else {
-      val hoge0 = prev.asInstanceOf[Herbivore]
-      val hoge1 = current.asInstanceOf[Herbivore]
-      
-      val state0 = S(hoge0.learningInfo.subWorld, hoge0)
-      val action = hoge0.learningInfo.action
-      val state1 = S(hoge1.learningInfo.subWorld, hoge1)
-      
-      (state0, action, state1, reward)
-    }
+    val reward = current.internal.life - prev.internal.life + prev.learningInfo.makeBorn * 10000
+    val state0 = S(prev.learningInfo.subWorld, prev)
+    val action = prev.learningInfo.action
+    val state1 = S(current.learningInfo.subWorld, current)
+    (state0, action, state1, reward)
   }
     
   def update(prev: Animal, current: Animal): State[StateActionValue, Unit] = {
     val data = toData(prev, current)
-    println(data)
+    print(data)
     val currentState = data._3
     for {
       avMap <- getAVMap(currentState)
@@ -89,7 +74,7 @@ object Qlearning {
     S(subWorld, animal)
   }
   
-  val epsilon = 0.5
+  val epsilon = 0.1
   
   def learningRasio(): Unit = {
     println("carn " + CarnivoreQlearning.learningRasio)
@@ -119,7 +104,7 @@ object HerbivoreQlearning {
   def getValue: StateActionValue = stateActionValue
   def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
   
-  def learningRasio: String = stateActionValue.bestAction.size + " " + stateActionValue.bestAction
+  def learningRasio: String = stateActionValue.bestAction.size.toString
 }
 
 object CarnivoreQlearning {
@@ -143,10 +128,10 @@ object CarnivoreQlearning {
   def getValue: StateActionValue = stateActionValue
   def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
 
-  def learningRasio: String = stateActionValue.bestAction.size + " " + stateActionValue.bestAction
+  def learningRasio: String = stateActionValue.bestAction.size.toString
 }
 
-// (Environment State 4 * 9) * (Internal State 4 * 3) * (Action 7) = (Qvalue 3024)
+// (Environment State 4 * 9) * (Internal State 8 * 3) * (Action 7) = (Qvalue 6048)
 case class StateActionValue(SA_Value: Map[(S, Int), Double], S_AValue: Map[S, Map[Int, Double]], bestAction: Map[S, Int]) extends Serializable {
   
   def update(s: S, a: Int, value: Double): StateActionValue = putSA_Value((s,a), value).putS_AValue(s, a, value).putBestAction(s, a, value)
@@ -252,7 +237,7 @@ object S {
 }
 
 case class SubState(val plant: Boolean, val herbivore: Boolean, val carnivore: Boolean)
-case class BioState(val angleType: Int, val speed: Int)
+case class BioState(val speed: Int, val angleType: Int)
 
 object SubState {
 
@@ -306,7 +291,14 @@ object BioState {
     BioState(speedType(animal.velocity.speed), angleType)
   }
 
-  def speedType(speed: Double): Int = if (maxSpeedType < speed.abs) maxSpeedType else speed.abs.toInt
+  def speedType(speed: Double): Int = {
+    speed match {
+      case s if (maxSpeedType < s) => maxSpeedType
+      case s if (0 <= s) => s.toInt
+      case s if (-maxSpeedType <= s) => s.toInt - 1
+      case s if (s < -maxSpeedType) => -maxSpeedType - 1
+    }
+  }
 
   def allBioState: List[BioState] = {
     val speedTypes = (0 to maxSpeedType).toList
@@ -319,9 +311,9 @@ object BioState {
 
 object Action {
 
-  val maxValue = 7
+  val maxValue = 6
 
-  def index = (1 to maxValue).toList
+  def index = (0 to maxValue).toList
 
   def carnivoreAction(i: Int, velocity: Velocity): Velocity = {
     i match {

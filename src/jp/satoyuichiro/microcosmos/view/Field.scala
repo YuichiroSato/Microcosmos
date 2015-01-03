@@ -12,12 +12,17 @@ import jp.satoyuichiro.microcosmos.model.bio.Plant
 import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 import jp.satoyuichiro.microcosmos.model.bio.Herbivore
 import java.awt.Polygon
+import jp.satoyuichiro.microcosmos.model.learning.S
+import jp.satoyuichiro.microcosmos.controller.Microcosmos
 
 class Field(width: Int, height: Int) extends JPanel {
 
   this.setBackground(Color.WHITE)
   
   def paintWorld(world: World, g: Graphics): Unit = {
+    g.setColor(Color.BLACK)
+    g.drawString("exp " + Microcosmos.iterationCount, 15, 50)
+    g.drawString("sav " + Microcosmos.fileCount.toString, 15, 70)
     world.plants foreach { plant => paintPlant(plant, g) }
     world.carnivores foreach { carnivore => paintCarnivore(carnivore, g) }
     world.herbivores foreach { herbivore => paintHerbivore(herbivore, g) }
@@ -57,6 +62,7 @@ class Field(width: Int, height: Int) extends JPanel {
     val ypoints = Array(y + r * Math.sin(theta), y + r * Math.sin(theta + 2.5), y + 0.5 * r * Math.sin(theta - 3.14), y + r * Math.sin(theta - 2.5)) map (_.toInt)
     g.setColor(carnivore.external.appearance.color)
     g.fillPolygon(xpoints, ypoints, xpoints.length)
+//    g.drawString(S(carnivore.learningInfo.subWorld, carnivore).toString, x + 10, y + 10)
   }
   
   def paintHerbivore(herbivore: Herbivore, g: Graphics): Unit = {
@@ -69,5 +75,6 @@ class Field(width: Int, height: Int) extends JPanel {
     val ypoints = Array(y + r * Math.sin(theta), y + r * Math.sin(theta + 2.5), y + r * Math.sin(theta - 3.14), y + r * Math.sin(theta - 2.5)) map (_.toInt)
     g.setColor(herbivore.external.appearance.color)
     g.fillPolygon(xpoints, ypoints, xpoints.length)
+//    g.drawString(S(herbivore.learningInfo.subWorld, herbivore).toString, x + 10, y + 10)
   }
 }

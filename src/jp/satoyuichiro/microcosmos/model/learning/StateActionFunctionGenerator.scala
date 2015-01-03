@@ -16,17 +16,21 @@ object StateActionFunctionGenerator {
   val fieldHeight = 600
   
   def main(args: Array[String]): Unit = {
-    val n = 10000
-    init()
+    val exp = 3
+    for (_ <- 1 to exp) {
+      val n = 10000
+      init()
     
-    var world = World.initLearning(fieldWidth, fieldHeight)
-    for (i <- 1 to n) {println(i)
-      world = world.update
-      if (world.isEnd) world = World.initLearning(fieldWidth, fieldHeight)
+      var world = World.initLearning(fieldWidth, fieldHeight)
+      for (i <- 1 to n) {
+        if (i % 100 == 0) println("\n" + i)
+        world = world.update
+        if (world.isEnd) world = World.initLearning(fieldWidth, fieldHeight)
+      }
+    
+      Qlearning.learningRasio()
+      output(find())
     }
-    
-    Qlearning.learningRasio()
-    output(find())
   }
   
   def init(): Unit = {
@@ -74,8 +78,7 @@ object StateActionFunctionGenerator {
             
         (cmap, hmap)
       } catch {
-        case _: Throwable => println("hoge")
-          (StateActionValue.empty, StateActionValue.empty)
+        case _: Throwable => (StateActionValue.empty, StateActionValue.empty)
       } finally {
         cStream.close()
         hStream.close()

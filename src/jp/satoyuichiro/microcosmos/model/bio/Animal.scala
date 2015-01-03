@@ -5,7 +5,7 @@ import jp.satoyuichiro.microcosmos.model.World
 import scalaz._
 import Scalaz._
 
-abstract class Animal(override val external: External, override val internal: Internal, val velocity: Velocity) extends Bio(external, internal){
+abstract class Animal(override val external: External, override val internal: Internal, val velocity: Velocity, val learningInfo: LearningInfo) extends Bio(external, internal){
 
   def move: Coordinates = {
     val x = external.coordinates.x + velocity.speed * Math.cos(external.coordinates.angle)
@@ -48,8 +48,10 @@ abstract class Animal(override val external: External, override val internal: In
 }
 
 case class Velocity(val speed: Double, val rotation: Double)
-case class LearningInfo(val count: Int, val subWorld: World, val animal: Animal, val action: Int, val learning: Boolean = false) {
+case class LearningInfo(val count: Int, val subWorld: World, val animal: Animal, val action: Int, val makeBorn: Int, val learning: Boolean = false) {
   
+  def nextLearningInfo(c: Int, sub: World, an: Animal, ac: Int): LearningInfo = copy(count = c, subWorld = sub, animal = an, action = ac)
+  def incrementMakeBorn: LearningInfo = copy(makeBorn = this.makeBorn + 1)
   def decriment: LearningInfo = copy(count = count - 1)
   def setLearningTrue: LearningInfo = copy(learning = true)
 }

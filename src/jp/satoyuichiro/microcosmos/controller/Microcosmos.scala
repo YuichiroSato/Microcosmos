@@ -20,9 +20,10 @@ object Microcosmos extends JFrame with Runnable {
   val field = new Field(fieldWidth, fieldHeight)
   var world = World.init(fieldWidth, fieldHeight)
   
-  val filePathC = "data/carnivore"
-  val filePathH = "data/herbivore"
-  var fileCount = 0
+  val filePathC = "data/carnivoreQ"
+  val filePathH = "data/herbivoreQ"
+  var iterationCount = 0
+  var fileCount = -1
 
   def main(args: Array[String]): Unit = {
     init()
@@ -35,16 +36,15 @@ object Microcosmos extends JFrame with Runnable {
     this.add(field)
     this.setVisible(true)
     this.show()
-    val map = readMap(0)
-    CarnivoreQlearning.setValue(map._1)
-    HerbivoreQlearning.setValue(map._2)
+    CarnivoreQlearning.setValue(StateActionValue.empty)
+    HerbivoreQlearning.setValue(StateActionValue.empty)
   }
   
   def readMap(count: Int): Tuple2[StateActionValue, StateActionValue] = {
     if (count < 0) return (StateActionValue.empty, StateActionValue.empty)
     
-    val cFileName = filePathC + fileCount.toString + ".txt"
-    val hFileName = filePathH + fileCount.toString + ".txt"
+    val cFileName = filePathC + count.toString + ".txt"
+    val hFileName = filePathH + count.toString + ".txt"
     val cf = new File(cFileName)
     val hf = new File(hFileName)
     
@@ -58,7 +58,8 @@ object Microcosmos extends JFrame with Runnable {
       try {
         val cmap = cStream.readObject().asInstanceOf[StateActionValue]
         val hmap = hStream.readObject().asInstanceOf[StateActionValue]
-            
+        fileCount = count
+        
         (cmap, hmap)
       } catch {
         case _: Throwable => (StateActionValue.empty, StateActionValue.empty)
@@ -69,8 +70,7 @@ object Microcosmos extends JFrame with Runnable {
         hFile.close()
       }
     } else {
-      fileCount -= 1
-      readMap(fileCount)
+      readMap(count - 1)
     }
   }
   
@@ -80,10 +80,10 @@ object Microcosmos extends JFrame with Runnable {
       world = world.update
       if (world.isEnd) {
         world = World.init(fieldWidth, fieldHeight)
-        fileCount += 1
-        val map = readMap(fileCount)
+        val map = readMap(iterationCount)
         CarnivoreQlearning.setValue(map._1)
         HerbivoreQlearning.setValue(map._2)
+        iterationCount += 1
       }
       render()
       Thread.sleep(sleepTime)
