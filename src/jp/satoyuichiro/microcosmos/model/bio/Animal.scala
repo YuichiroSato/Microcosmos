@@ -10,7 +10,7 @@ abstract class Animal(override val external: External, override val internal: In
   def move: Coordinates = {
     val x = external.coordinates.x + velocity.speed * Math.cos(external.coordinates.angle)
     val y = external.coordinates.y + velocity.speed * Math.sin(external.coordinates.angle)
-    val angle = external.coordinates.angle + velocity.rotation
+    val angle = (external.coordinates.angle + velocity.rotation) % (2 * Math.PI)
     Coordinates(x.toInt, y.toInt, angle)
   }
   
@@ -33,8 +33,9 @@ abstract class Animal(override val external: External, override val internal: In
       val eatingTarget = (dist minBy (d => d._2))._1
       world.remove(eatingTarget)
       world.updateBio(this, update())
-    } else
+    } else {
       world
+    }
   }
   
   def giveBirth(world: World, condition: () => Boolean, born: () => Bio, update: () => Bio): World = {
@@ -47,7 +48,11 @@ abstract class Animal(override val external: External, override val internal: In
   }
 }
 
-case class Velocity(val speed: Double, val rotation: Double)
+case class Velocity(val speed: Double, val rotation: Double) {
+  
+  def speedUp(d: Double): Velocity = copy(speed = speed + d)
+  def rotate(r: Double): Velocity = copy(rotation = rotation + r)
+}
 case class LearningInfo(val count: Int, val subWorld: World, val animal: Animal, val action: Int, val makeBorn: Int, val learning: Boolean = false) {
   
   def nextLearningInfo(c: Int, sub: World, an: Animal, ac: Int): LearningInfo = copy(count = c, subWorld = sub, animal = an, action = ac)

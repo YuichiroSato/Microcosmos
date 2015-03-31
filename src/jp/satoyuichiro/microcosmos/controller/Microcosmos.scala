@@ -21,7 +21,6 @@ object Microcosmos extends JFrame with Runnable {
   var world = World.init(fieldWidth, fieldHeight)
   
   val filePathC = "data/carnivoreQ"
-  val filePathH = "data/herbivoreQ"
   var iterationCount = 0
   var fileCount = -1
 
@@ -40,34 +39,25 @@ object Microcosmos extends JFrame with Runnable {
     HerbivoreQlearning.setValue(StateActionValue.empty)
   }
   
-  def readMap(count: Int): Tuple2[StateActionValue, StateActionValue] = {
-    if (count < 0) return (StateActionValue.empty, StateActionValue.empty)
+  def readMap(count: Int): StateActionValue = {
+    if (count < 0) return StateActionValue.empty
     
     val cFileName = filePathC + count.toString + ".txt"
-    val hFileName = filePathH + count.toString + ".txt"
     val cf = new File(cFileName)
-    val hf = new File(hFileName)
     
-    if (cf.exists() && hf.exists()) {
+    if (cf.exists()) {
       val cFile = new FileInputStream(cFileName)
 	  val cStream = new ObjectInputStream(cFile)
-
-      val hFile = new FileInputStream(hFileName)
-	  val hStream = new ObjectInputStream(hFile)
-    
       try {
         val cmap = cStream.readObject().asInstanceOf[StateActionValue]
-        val hmap = hStream.readObject().asInstanceOf[StateActionValue]
         fileCount = count
         
-        (cmap, hmap)
+        cmap
       } catch {
-        case _: Throwable => (StateActionValue.empty, StateActionValue.empty)
+        case _: Throwable => StateActionValue.empty
       } finally {
         cStream.close()
-        hStream.close()
         cFile.close()
-        hFile.close()
       }
     } else {
       readMap(count - 1)
@@ -81,8 +71,7 @@ object Microcosmos extends JFrame with Runnable {
       if (world.isEnd) {
         world = World.init(fieldWidth, fieldHeight)
         val map = readMap(iterationCount)
-        CarnivoreQlearning.setValue(map._1)
-        HerbivoreQlearning.setValue(map._2)
+        CarnivoreQlearning.setValue(map)
         iterationCount += 1
       }
       render()

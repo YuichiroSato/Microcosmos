@@ -69,7 +69,7 @@ case class Carnivore(override val external: External, override val internal: Int
 
 object Carnivore {
 
-  val lifeUp = 200
+  val lifeUp = 2000
   val giveBirthLife = 5000
   val initLife = 500
   val giveBirthCost = 4000

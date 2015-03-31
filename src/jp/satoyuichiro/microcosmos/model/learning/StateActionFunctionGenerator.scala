@@ -18,7 +18,7 @@ object StateActionFunctionGenerator {
   def main(args: Array[String]): Unit = {
     val exp = 3
     for (_ <- 1 to exp) {
-      val n = 10000
+      val n = 100000
       init()
     
       var world = World.initLearning(fieldWidth, fieldHeight)

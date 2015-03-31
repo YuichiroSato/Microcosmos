@@ -124,6 +124,13 @@ case class World(var cells: Array[Array[Cell]], var plants: List[Plant], var car
     val subWorld = World(this.getBios, this.width, this.height)
     subWorld.remove(bio).getSubWorld(startx, starty, w, h)
   }
+  
+  def getCell(x: Int, y: Int): Option[Cell] = {
+    if (-1 < x && x < cells.length && -1 < y && y < cells(0).length)
+    	Some(cells(x)(y))
+    else
+      None
+  }
 }
 
 object World {
@@ -180,10 +187,26 @@ object World {
     World(List.empty[Bio],1,1)
   }
   
+  def empty(width: Int, height: Int): World = {
+    World(List.empty[Bio], width, height)
+  }
+  
   def removeABio[A <: Bio](bio: A, bios: List[A]): List[A] = {
     val i = bios.indexOf(bio)
     bios.take(i) ++ bios.drop(i + 1)
   }
+  
+  def boundaryCondition(coordinates: Coordinates, width: Int, height: Int): Coordinates = {
+    var x = coordinates.x
+    var y = coordinates.y
+
+    if (x < 0) x += width - 1
+    if (y < 0) y += height - 1
+    if (width <= x) x -= width + 1
+    if (height <= y) y -= height + 1
+
+    Coordinates(x, y, coordinates.angle)
+  } 
 }
 
 case class Cell(val materials: Tuple2[Water, Mineral], val bios: List[Bio]) {

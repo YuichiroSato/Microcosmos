@@ -35,6 +35,74 @@ case class Herbivore(override val external: External, override val internal: Int
   def isDead: Boolean = internal.life <= 0
   
   def chooseAction(world: World): World = {
+    if (Math.random() < 0.1) {
+      herdCordedStrategy(world)
+    } else {
+      world
+    }
+  }
+  
+  def herdCordedStrategy(world: World) = {
+    val opoc = findClosestPlantCarnivore(world)
+    val herb = opoc match {
+      case (Some(p: Plant), Some(c: Carnivore)) => runAway(c.external.coordinates)
+      case (Some(p: Plant), None) => runInto(p.external.coordinates)
+      case (None, Some(c: Carnivore)) => runAway(c.external.coordinates)
+      case (None, None) => randomMove()
+    }
+    world.updateBio(this, herb)
+  }
+  
+  def runAway(c: Coordinates): Herbivore = {
+    val target = targetAngle(c)
+    var v = this.velocity
+    var e = this.external
+    
+    if (velocity.speed < 1.0) {
+      v = v.speedUp(1.0)
+    }
+    if (target < 0) {
+      e = e.setAngle(target + 3 * Math.PI)
+    } else {
+      e = e.setAngle(target + Math.PI)
+    }
+    this.setExternal(e).setVelocity(Velocity(v.speed, 0.0))
+  }
+  
+  def runInto(c: Coordinates): Herbivore = {
+    val target = targetAngle(c)
+    var v = this.velocity
+    var e = this.external
+    
+    if (velocity.speed < 1.0) {
+      v = v.speedUp(1.0)
+    }
+    if (target < 0) {
+      e = e.setAngle(target + 2 * Math.PI)
+    } else {
+      e = e.setAngle(target)
+    }
+    this.setExternal(e).setVelocity(Velocity(v.speed, 0.0))
+  }
+  
+  def targetAngle(c: Coordinates): Double = {
+    val dx = c.x - external.coordinates.x
+    val dy = -c.y + external.coordinates.y
+    Math.atan2(dy, dx)
+  }
+  
+  def randomMove(): Herbivore = {
+    (Math.random() * 20).toInt match {
+	  case 0 => this.setVelocity(Velocity(0, velocity.rotation))
+	  case 1 => this.setVelocity(velocity.speedUp(2.0))
+	  case 2 => this.setVelocity(velocity.speedUp(-1.0))
+	  case 3 => this.setVelocity(velocity.speedUp(0.5).rotate(0.1))
+	  case 4 => this.setVelocity(velocity.speedUp(0.5).rotate(-0.1))
+      case _ => this
+    }
+  }
+  
+  def chooseActionWithLearning(world: World): World = {
     if (learningInfo.count < 0) {
       if (learningInfo.learning) {
         val subWorld = world.getSubWorldAround(this, 80, 80)
@@ -57,21 +125,65 @@ case class Herbivore(override val external: External, override val internal: Int
     }
   }
   
+  val maxSearchWidth = 100
+  type PCPair = (Option[Plant], Option[Carnivore])
+  
+  def findClosestPlantCarnivore(world: World): PCPair = {
+    var res = (None: Option[Plant], None: Option[Carnivore])
+    val x = external.coordinates.x
+    val y = external.coordinates.y
+    for (i <- (1 to maxSearchWidth)) {
+      for (j <- (-i to i)) {
+        res = pickUpPlantCarnivore(world, x - i, y + j, res)
+        res = pickUpPlantCarnivore(world, x + i, y + j, res)
+        res = pickUpPlantCarnivore(world, x + j, y - i, res)
+        res = pickUpPlantCarnivore(world, x + j, y + i, res)
+        res match {
+          case (Some(p), Some(c)) => return res
+          case _ =>
+        }
+      }
+    }
+    res
+  }
+  
+  def pickUpPlantCarnivore(world: World, x: Int, y: Int, result: PCPair): PCPair = {
+    var op = None: Option[Plant]
+    var oc = None: Option[Carnivore]
+    world.getCell(x, y) match {
+      case Some(c) =>
+        for (b <- c.bios) yield {
+          if (b.isInstanceOf[Plant])
+            op = Some(b.asInstanceOf[Plant])
+          else if (b.isInstanceOf[Carnivore])
+            oc = Some(b.asInstanceOf[Carnivore])
+        }
+      case None =>
+    }
+    result match {
+      case (Some(p), Some(c)) => result
+      case (Some(p), None) => (Some(p), oc)
+      case (None, Some(c)) => (op, Some(c))
+      case (None, None) => (op, oc)
+    }
+  }
+  
   def setExternal(e: External): Herbivore = copy(external = e)
   def setExternal(c: Coordinates, a: Appearance): Herbivore = copy(external = External(c, a))
   def setInternal(l: Int, w: Int, m: Int): Herbivore = copy(internal = Internal(l, w, m))
   def setLife(l: Int): Herbivore = copy(internal = Internal(l, internal.water, internal.mineral))
   def setLife(f: Int => Int): Herbivore = setLife(f(internal.life))
+  def setVelocity(v: Velocity): Herbivore = copy(velocity = v)
   def incrementMakeBorn(): Herbivore = copy(learningInfo = this.learningInfo.incrementMakeBorn)
   def setLearningTrue: Herbivore = copy(learningInfo = learningInfo.setLearningTrue)
 }
 
 object Herbivore {
     
-  val lifeUp = 400
-  val giveBirthLife = 2000
+  val lifeUp = 800
+  val giveBirthLife = 1000
   val initLife = 100
-  val giveBirthCost = 1000
+  val giveBirthCost = 500
   val learningInterval = 10
   val workingInterval = 2
   
