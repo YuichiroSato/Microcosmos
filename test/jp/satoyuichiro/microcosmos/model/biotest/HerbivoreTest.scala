@@ -25,7 +25,7 @@ class HerbivoreTest extends TestCase {
   @Test def testrunInto {
     val external = External.herbivore(Coordinates(20,20,3.14))
     val velocity = Velocity(10, 0.3)
-    val herb = new Herbivore(external, null, velocity, null)
+    val herb = new Herbivore(external, null, velocity)
     
     val c1 = Coordinates(20, 10, 0.4)
     val res1 = herb.runInto(c1)
@@ -53,7 +53,7 @@ class HerbivoreTest extends TestCase {
   @Test def testgetAngle {
     val external = External.herbivore(Coordinates(20,20,0.4))
     val velocity = Velocity(10, 0.3)
-    val herb = new Herbivore(external, null, velocity, null)
+    val herb = new Herbivore(external, null, velocity)
     
     val c1 = Coordinates(30,20,0.0)
     val angle1 = herb.targetAngle(c1)

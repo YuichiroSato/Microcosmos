@@ -15,11 +15,12 @@ import Scalaz._
 object Qlearning {
 
   def toData(prev: Animal, current: Animal): (S, Int, S, Int) = {
-    val reward = current.internal.life - prev.internal.life + prev.learningInfo.makeBorn * 10000
-    val state0 = S(prev.learningInfo.subWorld, prev)
-    val action = prev.learningInfo.action
-    val state1 = S(current.learningInfo.subWorld, current)
-    (state0, action, state1, reward)
+//	    val reward = current.internal.life - prev.internal.life + prev.learningInfo.makeBorn * 10000
+//	    val state0 = S(prev.learningInfo.subWorld, prev)
+//	    val action = prev.learningInfo.action
+//	    val state1 = S(current.learningInfo.subWorld, current)
+//	    (state0, action, state1, reward)
+    (null, 0, null, 0)
   }
     
   def update(prev: Animal, current: Animal): State[StateActionValue, Unit] = {
@@ -129,6 +130,13 @@ object CarnivoreQlearning {
   def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
 
   def learningRasio: String = stateActionValue.bestAction.size.toString
+}
+
+class QlearningStrategy(stateActionValue: StateActionValue) extends Strategy[Carnivore]{
+  
+  def chooseAction(subWorld: World, carn: Carnivore): Int = {
+    stateActionValue.getBestAction(Qlearning.toState(subWorld, carn))
+  }
 }
 
 // (Environment State 4 * 9) * (Internal State 8 * 3) * (Action 7) = (Qvalue 6048)

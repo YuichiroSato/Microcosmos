@@ -8,8 +8,8 @@ import jp.satoyuichiro.microcosmos.model.learning._
 import scalaz._
 import Scalaz._
 
-case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity, override val learningInfo: LearningInfo)
-  extends Animal(external, internal, velocity, learningInfo) {
+case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity)
+  extends Animal(external, internal, velocity) {
 
   def evolve: Bio = setExternal(move, external.appearance).setLife(runningCost(velocity.speed) >>> existingCost)
   
@@ -27,7 +27,7 @@ case class Carnivore(override val external: External, override val internal: Int
 
   val condition = () => Carnivore.giveBirthLife < internal.life
   val born = () => Carnivore(external.coordinates.x, external.coordinates.y)
-  val update2 = () => setLife(_ - Carnivore.giveBirthCost).incrementMakeBorn
+  val update2 = () => setLife(_ - Carnivore.giveBirthCost)
 
   def giveBirthCarnivore(world: World) = {
     giveBirth(world, condition, born, update2)
@@ -36,25 +36,11 @@ case class Carnivore(override val external: External, override val internal: Int
   def isDead: Boolean = internal.life <= 0
 
   def chooseAction(world: World): World = {
-    if (learningInfo.count < 0) {
-      if (learningInfo.learning) {
-        val subWorld = world.getSubWorldAround(this, 80, 80)
-        val action = CarnivoreQlearning.action(subWorld, this)
-        val nextVelocity = Action.carnivoreAction(action, velocity)
-        val nextLearnInfo = learningInfo.nextLearningInfo(Carnivore.learningInterval, subWorld, this, action)
-        val carb = new Carnivore(external, internal, nextVelocity, nextLearnInfo)
-        CarnivoreQlearning.learn(learningInfo.animal.asInstanceOf[Carnivore], carb)
-        world.updateBio(this, carb)
-      } else {
-        val subWorld = world.getSubWorldAround(this, 80, 80)
-        val action = CarnivoreQlearning.getBestAction(subWorld, this)
-        val nextVelocity = Action.carnivoreAction(action, velocity)
-        val nextLearnInfo = learningInfo.nextLearningInfo(Carnivore.workingInterval, subWorld, this, action)
-        val carb = Carnivore(external, internal, nextVelocity, nextLearnInfo)
-        world.updateBio(this, carb)
-      }
+    val nextState = Carnivore.nextState(world, this)
+    if (this == nextState) {
+      world
     } else {
-      world.updateBio(this, copy(learningInfo = this.learningInfo.decriment))
+      world.updateBio(this, nextState)
     }
   }
   
@@ -63,8 +49,8 @@ case class Carnivore(override val external: External, override val internal: Int
   def setInternal(l: Int, w: Int, m: Int): Carnivore = copy(internal = Internal(l, w, m))
   def setLife(l: Int): Carnivore = copy(internal = Internal(l, internal.water, internal.mineral))
   def setLife(f: Int => Int): Carnivore = setLife(f(internal.life))
-  def incrementMakeBorn(): Carnivore = copy(learningInfo = this.learningInfo.incrementMakeBorn)
-  def setLearningTrue: Carnivore = copy(learningInfo = learningInfo.setLearningTrue)
+  def setVelocity(v: Velocity): Carnivore = copy(velocity = v)
+  
 }
 
 object Carnivore {
@@ -80,19 +66,47 @@ object Carnivore {
     val coordinates = Coordinates(x, y, Math.random())
     val appearance = Appearance(12, Color.RED)
     val velocity = Velocity(5 * Math.random(), Math.random() - 0.5)
-    val learningInfo = LearningInfo((learningInterval * Math.random()).toInt, World.empty, Carnivore.empty, Action.maxValue, 0)
-    Carnivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, learningInfo)
+    Carnivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity)
   }
-  
-  def learning(x: Int, y: Int): Carnivore = apply(x, y).setLearningTrue
   
   def empty: Carnivore = {
     val external = External(Coordinates(0,0,0), Appearance(0, Color.RED))
     val internal = Internal(initLife, 0, 0)
     val velocity = Velocity(0, 0)
-    val learningInfo0 = LearningInfo(learningInterval, World.empty, null, Action.maxValue, 0)
-    val animal = Carnivore(external, internal, velocity, learningInfo0)
-    val learningInfo1 = LearningInfo(learningInterval, World.empty, animal, Action.maxValue, 0)
-    Carnivore(external, internal, velocity,  learningInfo1)
+    val animal = Carnivore(external, internal, velocity)
+    Carnivore(external, internal, velocity)
+  }
+  
+  var strategy: Strategy[Carnivore] = new EmptyStrategy()
+  
+  def setStrategy(s: Strategy[Carnivore]): Unit = {
+    strategy = s
+  }
+  
+  val eyesight = 80
+  
+  def getSubWorld(world: World, carn: Carnivore): World = {
+    world.getSubWorldAround(carn, eyesight, eyesight)
+  }
+  
+  def nextState(world: World, carn: Carnivore): Carnivore = {
+    val subWorld = getSubWorld(world, carn)
+    val action = strategy.chooseAction(subWorld, carn)
+    val velocity = Carnivore.action(action, carn.velocity)
+    carn.setVelocity(velocity)
+  }
+  
+  val doNothing = 7
+  
+  def action(i: Int, velocity: Velocity): Velocity = {
+    i match {
+      case 1 => Velocity(velocity.speed + 3.0, velocity.rotation)
+      case 2 => Velocity(velocity.speed - 3.0, velocity.rotation)
+      case 3 => Velocity(velocity.speed, velocity.rotation + 0.1)
+      case 4 => Velocity(velocity.speed, velocity.rotation - 0.1)
+      case 5 => Velocity(velocity.speed, 0.0)
+      case 6 => Velocity(0.0, 0.0)
+      case _ => velocity
+    }
   }
 }

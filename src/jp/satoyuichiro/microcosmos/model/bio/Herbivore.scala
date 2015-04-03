@@ -7,8 +7,8 @@ import jp.satoyuichiro.microcosmos.model.learning._
 import scalaz._
 import Scalaz._
 
-case class Herbivore(override val external: External, override val internal: Internal, override val velocity: Velocity, override val learningInfo: LearningInfo)
-  extends Animal(external, internal, velocity, learningInfo) {
+case class Herbivore(override val external: External, override val internal: Internal, override val velocity: Velocity)
+  extends Animal(external, internal, velocity) {
 
   def evolve: Bio = setExternal(move, external.appearance).setLife(runningCost(velocity.speed) >>> existingCost)
   
@@ -26,7 +26,7 @@ case class Herbivore(override val external: External, override val internal: Int
 
   val condition = () => Herbivore.giveBirthLife < internal.life
   val born = () => Herbivore(external.coordinates.x, external.coordinates.y)
-  val update2 = () => setLife(_ - Herbivore.giveBirthCost).incrementMakeBorn
+  val update2 = () => setLife(_ - Herbivore.giveBirthCost)
   
   def giveBirthHerbivore(world: World) = {
     giveBirth(world, condition, born, update2)
@@ -102,28 +102,28 @@ case class Herbivore(override val external: External, override val internal: Int
     }
   }
   
-  def chooseActionWithLearning(world: World): World = {
-    if (learningInfo.count < 0) {
-      if (learningInfo.learning) {
-        val subWorld = world.getSubWorldAround(this, 80, 80)
-        val action = HerbivoreQlearning.action(subWorld, this)
-        val nextVelocity = Action.herbivoreAction(action, velocity)
-        val nextLearningInfo = learningInfo.nextLearningInfo(Herbivore.learningInterval, subWorld, this, action)
-        val herb = new Herbivore(external, internal, nextVelocity, nextLearningInfo)
-        HerbivoreQlearning.learn(learningInfo.animal.asInstanceOf[Herbivore], herb)
-        world.updateBio(this, herb)
-      } else {
-        val subWorld = world.getSubWorldAround(this, 80, 80)
-        val action = HerbivoreQlearning.getBestAction(subWorld, this)
-        val nextVelocity = Action.herbivoreAction(action, velocity)
-        val nextLearningInfo = learningInfo.nextLearningInfo(Herbivore.workingInterval, subWorld, this, action)
-        val herb = Herbivore(external, internal, nextVelocity, nextLearningInfo)
-        world.updateBio(this, herb)
-      }
-    } else {
-      world.updateBio(this, copy(learningInfo = this.learningInfo.decriment))
-    }
-  }
+//  def chooseActionWithLearning(world: World): World = {
+//    if (learningInfo.count < 0) {
+//      if (learningInfo.learning) {
+//        val subWorld = world.getSubWorldAround(this, 80, 80)
+//        val action = HerbivoreQlearning.action(subWorld, this)
+//        val nextVelocity = Action.herbivoreAction(action, velocity)
+//        val nextLearningInfo = learningInfo.nextLearningInfo(Herbivore.learningInterval, subWorld, this, action)
+//        val herb = new Herbivore(external, internal, nextVelocity, nextLearningInfo)
+//        HerbivoreQlearning.learn(learningInfo.animal.asInstanceOf[Herbivore], herb)
+//        world.updateBio(this, herb)
+//      } else {
+//        val subWorld = world.getSubWorldAround(this, 80, 80)
+//        val action = HerbivoreQlearning.getBestAction(subWorld, this)
+//        val nextVelocity = Action.herbivoreAction(action, velocity)
+//        val nextLearningInfo = learningInfo.nextLearningInfo(Herbivore.workingInterval, subWorld, this, action)
+//        val herb = Herbivore(external, internal, nextVelocity, nextLearningInfo)
+//        world.updateBio(this, herb)
+//      }
+//    } else {
+//      world.updateBio(this, copy(learningInfo = this.learningInfo.decriment))
+//    }
+//  }
   
   val maxSearchWidth = 100
   type PCPair = (Option[Plant], Option[Carnivore])
@@ -174,8 +174,7 @@ case class Herbivore(override val external: External, override val internal: Int
   def setLife(l: Int): Herbivore = copy(internal = Internal(l, internal.water, internal.mineral))
   def setLife(f: Int => Int): Herbivore = setLife(f(internal.life))
   def setVelocity(v: Velocity): Herbivore = copy(velocity = v)
-  def incrementMakeBorn(): Herbivore = copy(learningInfo = this.learningInfo.incrementMakeBorn)
-  def setLearningTrue: Herbivore = copy(learningInfo = learningInfo.setLearningTrue)
+
 }
 
 object Herbivore {
@@ -191,19 +190,13 @@ object Herbivore {
     val coordinates = Coordinates(x,y, Math.random)
     val appearance = Appearance(12, Color.BLUE)
     val velocity = Velocity(10 * Math.random(), Math.random() - 0.5)
-    val learningInfo = LearningInfo((learningInterval * Math.random()).toInt, World.empty, Herbivore.empty, Action.maxValue, 0)
-    Herbivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, learningInfo)
+    Herbivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity)
   }
   
-  def learning(x: Int, y: Int): Herbivore = apply(x, y).setLearningTrue
-
   def empty: Herbivore = {
     val external = External(Coordinates(0,0,0), Appearance(0, Color.RED))
     val internal = Internal(initLife, 0, 0)
     val velocity = Velocity(0, 0)
-    val learningInfo0 = LearningInfo(learningInterval, World.empty, null, Action.maxValue, 0)
-    val animal = Herbivore(external, internal, velocity, learningInfo0)
-    val learningInfo1 = LearningInfo(learningInterval, World.empty, animal, Action.maxValue, 0)
-    Herbivore(external, internal, velocity,  learningInfo1)
+    Herbivore(external, internal, velocity)
   }
 }

@@ -12,6 +12,7 @@ import java.io.FileInputStream
 import java.io.ObjectInputStream
 import scala.io.Source
 import java.io.File
+import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 
 object Microcosmos extends JFrame with Runnable {
 
@@ -35,8 +36,7 @@ object Microcosmos extends JFrame with Runnable {
     this.add(field)
     this.setVisible(true)
     this.show()
-    CarnivoreQlearning.setValue(StateActionValue.empty)
-    HerbivoreQlearning.setValue(StateActionValue.empty)
+    Carnivore.setStrategy(new QlearningStrategy(StateActionValue.empty))
   }
   
   def readMap(count: Int): StateActionValue = {
@@ -71,7 +71,7 @@ object Microcosmos extends JFrame with Runnable {
       if (world.isEnd) {
         world = World.init(fieldWidth, fieldHeight)
         val map = readMap(iterationCount)
-        CarnivoreQlearning.setValue(map)
+        Carnivore.setStrategy(new QlearningStrategy(map))
         iterationCount += 1
       }
       render()

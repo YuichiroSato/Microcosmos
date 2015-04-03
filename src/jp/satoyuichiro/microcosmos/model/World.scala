@@ -174,8 +174,8 @@ object World {
   
   val learnInit = (bio: Bio) => bio match {
     case p: Plant => p
-    case h: Herbivore => h.setLearningTrue
-    case c: Carnivore => c.setLearningTrue
+    case h: Herbivore => h
+    case c: Carnivore => c
   }
   
   def initLearning(width: Int, height: Int): World = {
