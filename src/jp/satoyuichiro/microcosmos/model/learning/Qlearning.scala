@@ -19,25 +19,6 @@ import java.io.ObjectInputStream
 
 object Qlearning {
 
-  def toData(prev: Animal, current: Animal): (S, Int, S, Int) = {
-//	    val reward = current.internal.life - prev.internal.life + prev.learningInfo.makeBorn * 10000
-//	    val state0 = S(prev.learningInfo.subWorld, prev)
-//	    val action = prev.learningInfo.action
-//	    val state1 = S(current.learningInfo.subWorld, current)
-//	    (state0, action, state1, reward)
-    (null, 0, null, 0)
-  }
-    
-  def update(prev: Animal, current: Animal): State[StateActionValue, Unit] = {
-    val data = toData(prev, current)
-    print(data)
-    val currentState = data._3
-    for {
-      avMap <- getAVMap(currentState)
-      result <- branch(avMap, data)
-    } yield result
-  }
-  
   def update(sav: StateActionValue, current: S, action: Int, reward: Int, next: S): StateActionValue = {
     val avMap = getAVMap(sav, current)
     if (avMap.isEmpty)
@@ -50,53 +31,20 @@ object Qlearning {
     }
   }
   
-  def getOldValue(s: S, a: Int) = State[StateActionValue, Double] {
-    sav => (sav, sav.SA_Value.getOrElse((s,a), StateActionValue.initValue))
-  }
-  
   def getOldValue(sav: StateActionValue, s: S, a: Int): Double = {
     sav.SA_Value.getOrElse((s,a), StateActionValue.initValue)
-  }
-  
-  def getAVMap(s: S) = State[StateActionValue, Map[Int, Double]] {
-    sav => (sav, sav.S_AValue.getOrElse(s, Map.empty[Int, Double]))
   }
   
   def getAVMap(sav: StateActionValue, s: S): Map[Int, Double] = {
     sav.S_AValue.getOrElse(s, Map.empty[Int, Double])
   }
   
-  def branch(avMap: Map[Int, Double], data: (S, Int, S, Int)): State[StateActionValue, Unit] = {
-    val (targetState, action, currentState, reward) = data
-    if (avMap.isEmpty)
-      insertNewSA(targetState, action)
-    else
-      for {
-        oldValue <- getOldValue(targetState, action)
-        maxValue <- getMaxValue(avMap)
-        newValue <- State.state(calculateNewValue(oldValue, reward, maxValue))
-        result <- updateValue(targetState, action, newValue)
-      } yield result
-  }
-  
-  def insertNewSA(targetState: S, action: Int) = State[StateActionValue, Unit] {
-    sav => (sav.update(targetState, action, StateActionValue.initValue), ())
-  }
-  
   def insertNewSA(sav: StateActionValue, targetState: S, action: Int): StateActionValue = {
     sav.update(targetState, action, StateActionValue.initValue)
   }
   
-  def getMaxValue(map: Map[Int, Double]) = State[StateActionValue, Double] {
-    sav => (sav, if (map.isEmpty) Double.MinValue else map.maxBy(_._2)._2)
-  }
-  
   def getMaxValue(sav: StateActionValue, map: Map[Int, Double]): Double = {
     if (map.isEmpty) Double.MinValue else map.maxBy(_._2)._2
-  }
-  
-  def updateValue(targetState: S, action: Int, newValue: Double) = State[StateActionValue, Unit] {
-    sav => (sav.update(targetState, action, newValue), ())
   }
   
   def updateValue(sav: StateActionValue, targetState: S, action: Int, newValue: Double): StateActionValue = {
@@ -112,62 +60,7 @@ object Qlearning {
     S(subWorld, animal)
   }
   
-  val epsilon = 0.1
-  
-  def learningRasio(): Unit = {
-    println("carn " + CarnivoreQlearning.learningRasio)
-    println("herb " + HerbivoreQlearning.learningRasio)
-  }
-  
   def learningRasio(sav: StateActionValue): String = sav.bestAction.size.toString
-}
-
-object HerbivoreQlearning {
-  
-  private var stateActionValue = StateActionValue.empty
-  
-  def learn(herbivore0: Herbivore, herbivore1: Herbivore): Unit = {
-    stateActionValue = Qlearning.update(herbivore0, herbivore1).exec(stateActionValue)
-  }
-  
-  def action(subWorld: World, herbivore: Herbivore): Int = {
-    if (Qlearning.epsilon < Math.random()) {
-      (Action.maxValue * Math.random()).toInt
-    } else {
-      stateActionValue.getBestAction(Qlearning.toState(subWorld, herbivore))
-    }
-  }
-  
-  def getBestAction(subWorld: World, herbivore: Herbivore): Int = stateActionValue.getBestAction(Qlearning.toState(subWorld, herbivore))
-  
-  def getValue: StateActionValue = stateActionValue
-  def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
-  
-  def learningRasio: String = stateActionValue.bestAction.size.toString
-}
-
-object CarnivoreQlearning {
-  
-  private var stateActionValue = StateActionValue.empty
-
-  def learn(carnivore0: Carnivore, carnivore1: Carnivore): Unit = {
-    stateActionValue = Qlearning.update(carnivore0, carnivore1).exec(stateActionValue)
-  }
-  
-  def action(subWorld: World, carnivore: Carnivore): Int = {
-    if (Qlearning.epsilon < Math.random()) {
-      (Action.maxValue * Math.random()).toInt
-    } else {
-      stateActionValue.getBestAction(Qlearning.toState(subWorld, carnivore))
-    }
-  }
-
-  def getBestAction(subWorld: World, carnivore: Carnivore): Int = stateActionValue.getBestAction(Qlearning.toState(subWorld, carnivore))
-  
-  def getValue: StateActionValue = stateActionValue
-  def setValue(sav: StateActionValue): Unit = this.stateActionValue = sav
-
-  def learningRasio: String = stateActionValue.bestAction.size.toString
 }
 
 class QlearningStrategy(stateActionValue: StateActionValue) extends Strategy[Carnivore]{
@@ -234,7 +127,7 @@ object StateActionValue {
     try {
       val fStream = new FileOutputStream(fileName + ".sav")
 	  val oStream = new ObjectOutputStream(fStream)
-	  oStream.writeObject(CarnivoreQlearning.getValue)
+	  oStream.writeObject(sav)
 	  
 	  fStream.close()
 	  oStream.close()

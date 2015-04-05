@@ -13,3 +13,8 @@ class EmptyStrategy extends Strategy[Carnivore] {
   
   def chooseAction(subWorld: World, carn: Carnivore): Int = Carnivore.doNothing
 }
+
+class RandomStrategy extends Strategy[Carnivore] {
+  
+  def chooseAction(subWorld: World, carn: Carnivore): Int = Carnivore.randomAction
+}

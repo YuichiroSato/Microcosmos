@@ -14,6 +14,9 @@ import jp.satoyuichiro.microcosmos.model.bio.Herbivore
 import java.awt.Polygon
 import jp.satoyuichiro.microcosmos.model.learning.S
 import jp.satoyuichiro.microcosmos.controller.Microcosmos
+import jp.satoyuichiro.microcosmos.model.learning.EmptyStrategy
+import jp.satoyuichiro.microcosmos.model.learning.QlearningStrategy
+import jp.satoyuichiro.microcosmos.model.learning.RandomStrategy
 
 class Field(width: Int, height: Int) extends JPanel {
 
@@ -22,7 +25,10 @@ class Field(width: Int, height: Int) extends JPanel {
   def paintWorld(world: World, g: Graphics): Unit = {
     g.setColor(Color.BLACK)
     g.drawString("exp " + Microcosmos.iterationCount, 15, 50)
-    g.drawString("sav " + Microcosmos.fileCount.toString, 15, 70)
+    Carnivore.strategy match {
+      case s: RandomStrategy => g.drawString("Random strategy", 15, 70)
+      case s: QlearningStrategy => g.drawString("Qlearning", 15, 70)
+    }
     world.plants foreach { plant => paintPlant(plant, g) }
     world.carnivores foreach { carnivore => paintCarnivore(carnivore, g) }
     world.herbivores foreach { herbivore => paintHerbivore(herbivore, g) }

@@ -21,9 +21,7 @@ object Microcosmos extends JFrame with Runnable {
   val field = new Field(fieldWidth, fieldHeight)
   var world = World.init(fieldWidth, fieldHeight)
   
-  val filePathC = "carnQver2"
   var iterationCount = 0
-  var fileCount = -1
 
   def main(args: Array[String]): Unit = {
     init()
@@ -36,41 +34,16 @@ object Microcosmos extends JFrame with Runnable {
     this.add(field)
     this.setVisible(true)
     this.show()
-    Carnivore.setStrategy(new QlearningStrategy(StateActionValue.empty))
+    Carnivore.setStrategy(new RandomStrategy())
   }
-  
-//  def readMap(count: Int): StateActionValue = {
-//    if (count < 0) return StateActionValue.empty
-//    
-//    val cFileName = filePathC + count.toString + ".txt"
-//    val cf = new File(cFileName)
-//    
-//    if (cf.exists()) {
-//      val cFile = new FileInputStream(cFileName)
-//	  val cStream = new ObjectInputStream(cFile)
-//      try {
-//        val cmap = cStream.readObject().asInstanceOf[StateActionValue]
-//        fileCount = count
-//        
-//        cmap
-//      } catch {
-//        case _: Throwable => StateActionValue.empty
-//      } finally {
-//        cStream.close()
-//        cFile.close()
-//      }
-//    } else {
-//      readMap(count - 1)
-//    }
-//  }
-  
+    
   def run() {
     val sleepTime = 25
     while(true) {
       world = world.update
       if (world.isEnd) {
         world = World.init(fieldWidth, fieldHeight)
-        val map = StateActionValue.deserialize("carnQver2")//readMap(iterationCount)
+        val map = StateActionValue.deserialize("Qlearning10000")
         Carnivore.setStrategy(new QlearningStrategy(map))
         iterationCount += 1
       }

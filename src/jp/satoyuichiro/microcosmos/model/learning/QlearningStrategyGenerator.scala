@@ -28,7 +28,7 @@ object QlearningStrategyGenerator {
       if (i % 100 == 0) println(i + " time" + time + " learning" + Qlearning.learningRasio(Memory.getNext))
       world = world.update
       time += 1
-      if (world.isEnd || 1000 < time) {
+      if (world.isEnd || 100 < time) {
         world = LearningWorld.init(fieldWidth, fieldHeight)
         val sav = Memory.getNext
         val strategy = new LearningStrategy()
@@ -39,7 +39,7 @@ object QlearningStrategyGenerator {
       LearningStrategy.incrimentEpsilon(de)
     }
     println(Qlearning.learningRasio(Memory.getNext))
-    StateActionValue.serialize(Memory.getNext, "carnQver2")
+    StateActionValue.serialize(Memory.getNext, "Qlearning10000")
   }
 
 }
