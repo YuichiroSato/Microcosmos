@@ -21,7 +21,7 @@ object Microcosmos extends JFrame with Runnable {
   val field = new Field(fieldWidth, fieldHeight)
   var world = World.init(fieldWidth, fieldHeight)
   
-  val filePathC = "data/carnivoreQ"
+  val filePathC = "carnQver2"
   var iterationCount = 0
   var fileCount = -1
 
@@ -39,30 +39,30 @@ object Microcosmos extends JFrame with Runnable {
     Carnivore.setStrategy(new QlearningStrategy(StateActionValue.empty))
   }
   
-  def readMap(count: Int): StateActionValue = {
-    if (count < 0) return StateActionValue.empty
-    
-    val cFileName = filePathC + count.toString + ".txt"
-    val cf = new File(cFileName)
-    
-    if (cf.exists()) {
-      val cFile = new FileInputStream(cFileName)
-	  val cStream = new ObjectInputStream(cFile)
-      try {
-        val cmap = cStream.readObject().asInstanceOf[StateActionValue]
-        fileCount = count
-        
-        cmap
-      } catch {
-        case _: Throwable => StateActionValue.empty
-      } finally {
-        cStream.close()
-        cFile.close()
-      }
-    } else {
-      readMap(count - 1)
-    }
-  }
+//  def readMap(count: Int): StateActionValue = {
+//    if (count < 0) return StateActionValue.empty
+//    
+//    val cFileName = filePathC + count.toString + ".txt"
+//    val cf = new File(cFileName)
+//    
+//    if (cf.exists()) {
+//      val cFile = new FileInputStream(cFileName)
+//	  val cStream = new ObjectInputStream(cFile)
+//      try {
+//        val cmap = cStream.readObject().asInstanceOf[StateActionValue]
+//        fileCount = count
+//        
+//        cmap
+//      } catch {
+//        case _: Throwable => StateActionValue.empty
+//      } finally {
+//        cStream.close()
+//        cFile.close()
+//      }
+//    } else {
+//      readMap(count - 1)
+//    }
+//  }
   
   def run() {
     val sleepTime = 25
@@ -70,7 +70,7 @@ object Microcosmos extends JFrame with Runnable {
       world = world.update
       if (world.isEnd) {
         world = World.init(fieldWidth, fieldHeight)
-        val map = readMap(iterationCount)
+        val map = StateActionValue.deserialize("carnQver2")//readMap(iterationCount)
         Carnivore.setStrategy(new QlearningStrategy(map))
         iterationCount += 1
       }

@@ -8,9 +8,14 @@ import jp.satoyuichiro.microcosmos.model.bio.Herbivore
 import jp.satoyuichiro.microcosmos.model.bio.Carnivore
 import scala.collection.immutable.Queue
 import jp.satoyuichiro.microcosmos.model.bio.Animal
-
 import scalaz._
 import Scalaz._
+import java.io.FileOutputStream
+import java.io.ObjectOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
+import java.io.ObjectInputStream
 
 object Qlearning {
 
@@ -33,12 +38,32 @@ object Qlearning {
     } yield result
   }
   
+  def update(sav: StateActionValue, current: S, action: Int, reward: Int, next: S): StateActionValue = {
+    val avMap = getAVMap(sav, current)
+    if (avMap.isEmpty)
+      insertNewSA(sav, current, action)
+    else {
+      val oldValue = getOldValue(sav, next, action)
+      val maxValue = getMaxValue(sav, avMap)
+      val newValue = calculateNewValue(oldValue, reward, maxValue)
+      updateValue(sav, next, action, newValue)
+    }
+  }
+  
   def getOldValue(s: S, a: Int) = State[StateActionValue, Double] {
     sav => (sav, sav.SA_Value.getOrElse((s,a), StateActionValue.initValue))
   }
   
+  def getOldValue(sav: StateActionValue, s: S, a: Int): Double = {
+    sav.SA_Value.getOrElse((s,a), StateActionValue.initValue)
+  }
+  
   def getAVMap(s: S) = State[StateActionValue, Map[Int, Double]] {
     sav => (sav, sav.S_AValue.getOrElse(s, Map.empty[Int, Double]))
+  }
+  
+  def getAVMap(sav: StateActionValue, s: S): Map[Int, Double] = {
+    sav.S_AValue.getOrElse(s, Map.empty[Int, Double])
   }
   
   def branch(avMap: Map[Int, Double], data: (S, Int, S, Int)): State[StateActionValue, Unit] = {
@@ -58,12 +83,24 @@ object Qlearning {
     sav => (sav.update(targetState, action, StateActionValue.initValue), ())
   }
   
+  def insertNewSA(sav: StateActionValue, targetState: S, action: Int): StateActionValue = {
+    sav.update(targetState, action, StateActionValue.initValue)
+  }
+  
   def getMaxValue(map: Map[Int, Double]) = State[StateActionValue, Double] {
     sav => (sav, if (map.isEmpty) Double.MinValue else map.maxBy(_._2)._2)
   }
   
+  def getMaxValue(sav: StateActionValue, map: Map[Int, Double]): Double = {
+    if (map.isEmpty) Double.MinValue else map.maxBy(_._2)._2
+  }
+  
   def updateValue(targetState: S, action: Int, newValue: Double) = State[StateActionValue, Unit] {
     sav => (sav.update(targetState, action, newValue), ())
+  }
+  
+  def updateValue(sav: StateActionValue, targetState: S, action: Int, newValue: Double): StateActionValue = {
+    sav.update(targetState, action, newValue)
   }
   
   val alpha = 0.1
@@ -82,6 +119,7 @@ object Qlearning {
     println("herb " + HerbivoreQlearning.learningRasio)
   }
   
+  def learningRasio(sav: StateActionValue): String = sav.bestAction.size.toString
 }
 
 object HerbivoreQlearning {
@@ -172,6 +210,38 @@ object StateActionValue {
   val initValue = 100.0
   
   def empty: StateActionValue = StateActionValue(Map.empty[(S, Int), Double], Map.empty[S, Map[Int, Double]], Map.empty[S, Int])
+  
+    def deserialize(fileName: String): StateActionValue = {
+    val file = new File(fileName + ".sav")
+    
+    if (file.exists()) {
+      val fStream = new FileInputStream(file)
+	  val oStream = new ObjectInputStream(fStream)
+      try {
+        oStream.readObject().asInstanceOf[StateActionValue]
+      } catch {
+        case e: Throwable => throw e
+      } finally {
+        oStream.close()
+        fStream.close()
+      }
+    } else {
+      throw new RuntimeException("no file")
+    }
+  }
+  
+  def serialize(sav: StateActionValue, fileName: String): Unit = {
+    try {
+      val fStream = new FileOutputStream(fileName + ".sav")
+	  val oStream = new ObjectOutputStream(fStream)
+	  oStream.writeObject(CarnivoreQlearning.getValue)
+	  
+	  fStream.close()
+	  oStream.close()
+    } catch {
+      case _: Throwable => println("something wrong!")
+    }
+  }
 }
 
 //        |

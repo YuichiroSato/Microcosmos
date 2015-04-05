@@ -17,27 +17,64 @@ object QlearningStrategyGenerator {
 
   val fieldWidth = 600
   val fieldHeight = 600
-  var world = LearningWorld.toLearningWorld(World.init(fieldWidth, fieldHeight))
+  var world = LearningWorld.init(fieldWidth, fieldHeight)
   
   def main(args: Array[String]): Unit = {
     Carnivore.setStrategy(new LearningStrategy())
-    for (_ <- 1 to 10) {
+    val n = 10000
+    val de = 1.0 / n.toDouble
+    var time = 0
+    for (i <- 1 to 2 * n) {
+      if (i % 100 == 0) println(i + " time" + time + " learning" + Qlearning.learningRasio(Memory.getNext))
       world = world.update
+      time += 1
+      if (world.isEnd || 1000 < time) {
+        world = LearningWorld.init(fieldWidth, fieldHeight)
+        val sav = Memory.getNext
+        val strategy = new LearningStrategy()
+        strategy.setSAV(sav)
+        Carnivore.setStrategy(strategy)
+        time = 0
+      }
+      LearningStrategy.incrimentEpsilon(de)
     }
-    Memory.getTransitions foreach println
+    println(Qlearning.learningRasio(Memory.getNext))
+    StateActionValue.serialize(Memory.getNext, "carnQver2")
   }
 
 }
 
 class LearningStrategy() extends Strategy[Carnivore] {
   
-  var stateActionValue: StateActionValue = null
+  var stateActionValue = StateActionValue.empty
   
   def chooseAction(subWorld: World, carn: Carnivore): Int = {
-    val action = (Math.random() * 3).toInt//stateActionValue.getBestAction(Qlearning.toState(subWorld, carn))
-    TransitionBuilder.setAction((carn.asInstanceOf[LearningCarnivore]).index, action)
-    action
+    val lcarn = carn.asInstanceOf[LearningCarnivore]
+    if (lcarn.count <= 0) {
+      if (Math.random() < LearningStrategy.epsilon) {
+        val action = stateActionValue.getBestAction(Qlearning.toState(subWorld, carn))
+        TransitionBuilder.setAction(lcarn.index, action)
+        action
+      } else {
+        val action = Carnivore.randomAction
+        TransitionBuilder.setAction(lcarn.index, action)
+        action
+      }
+    } else {
+      Carnivore.doNothing
+    }
   }
+  
+  def setSAV(sav: StateActionValue): Unit = stateActionValue = sav
+}
+
+object LearningStrategy {
+
+  var epsilon = 0.0
+  
+  def setEpsilon(e: Double): Unit = epsilon = e
+  def incrimentEpsilon(d: Double): Unit = epsilon += d
+  
 }
 
 case class LearningWorld(world: World) {
@@ -64,54 +101,99 @@ case class LearningWorld(world: World) {
         w = bio.interact(w)
       }
     }
-    new LearningWorld(World(w.getBios filter (!_.isDead) map w.applyBoundaryCondition, w.width, w.height))
+    LearningWorld.toLearningWorld(World(w.getBios filter (!_.isDead) map w.applyBoundaryCondition, w.width, w.height))
   }
   
   def isValid: Boolean = world.carnivores.count(_.isInstanceOf[LearningCarnivore]) == world.carnivores.size
+  
+  def isEnd: Boolean = world.isEnd
 }
 
 object LearningWorld {
+
+  def init(fieldWidth: Int, fieldHeight: Int): LearningWorld = {
+    LearningWorld.toLearningWorld(World.init(fieldWidth, fieldHeight))
+  }
   
   def toLearningWorld(world: World): LearningWorld = {
     var newWorld = world
     world.carnivores foreach { c => 
-      if (c.isInstanceOf[Carnivore]) {
-        world.updateBio(c, LearningCarnivore(c))
+      if (!c.isInstanceOf[LearningCarnivore]) {
+        world.updateBio(c, LearningCarnivore.fromCarnivore(c))
       }}
     new LearningWorld(newWorld)
   }
   
   def evolveLearningCarnivore(carn: LearningCarnivore): LearningCarnivore = {
-    LearningCarnivore(carn.evolve.asInstanceOf[Carnivore], carn.index)
+    val buf = carn.internal.life
+    val newCarn = LearningCarnivore(carn.evolve.asInstanceOf[Carnivore], carn.index)
+    TransitionBuilder.setReward(carn.index, newCarn.internal.life - buf)
+    if (carn.isDead) {
+      TransitionBuilder.addReward(carn.index, -1000)
+    }
+    newCarn
   }
   
   def interactLearningCarnivore(world: World, carn: LearningCarnivore): World = {
-    val w1 = carn.eatHervibore(world)
-    val w2 = carn.giveBirthCarnivore(w1)
-    val w3 = carn.chooseAction(w2)
     val i = carn.index
+
+    val herbN = world.herbivores.size
+    val w1 = carn.eatHervibore(world)
+    TransitionBuilder.addReward(i, (herbN - w1.herbivores.size) * 100)
+    
+    val carnN = world.carnivores.size
+    val w2 = carn.giveBirthCarnivore(w1)
+    if (carnN < w2.carnivores.size) {
+      TransitionBuilder.addReward(i, 1000)
+    }
+    
+    val w3 = carn.chooseAction(w2)
+    
     val s = S(Carnivore.getSubWorld(world, carn), carn)
+    TransitionBuilder.setInitState(i, s)
     TransitionBuilder.setNextState(i, s)
-    TransitionBuilder.setReward(i, 0)
     TransitionBuilder.build(i) match {
-      case Some(t) => Memory.putTransition(t)
+      case Some(t) =>
+        Memory.putTransition(t)
+        TransitionBuilder.init(i)
+        TransitionBuilder.setCurrentState(i, s)
+        Memory.doLearning
       case None => 
     }
-    TransitionBuilder.init(i)
-    TransitionBuilder.setCurrentState(i, s)
     w3
   }
 }
 
 object Memory {
   
+  val maxSize = 100
   var logs = List.empty[Transition]
+  var nextSAV = StateActionValue.empty
   
   def putTransition(log: Transition): Unit = {
-    logs = log :: logs
+    if (logs.size < maxSize) {
+      logs = log :: logs
+    } else {
+      logs = logs.dropRight(1)
+      logs = log :: logs
+    }
   }
   
   def getTransitions: List[Transition] = logs
+  
+  def getRandomTransition: Transition = {
+    val n = (Math.random() * logs.size).toInt
+    logs.drop(n).head
+  }
+  
+  def doLearning: Unit = {
+    val t = getRandomTransition
+    nextSAV = Qlearning.update(nextSAV, t.current, t.action, t.reward, t.next)
+  }
+  
+  def setNext(sav: StateActionValue): Unit = nextSAV = sav
+  
+  def getNext: StateActionValue = nextSAV
 }
 
 object TransitionBuilder {
@@ -128,11 +210,15 @@ object TransitionBuilder {
     next -= i
   }
   
+  def setInitState(i: Int, s: S): Unit = if (!current.keySet.contains(i)) current += Tuple2(i, s)
+  
   def setCurrentState(i: Int, s: S): Unit = current += Tuple2(i, s)
   
   def setNextState(i: Int, s: S): Unit = next += Tuple2(i, s)
   
   def setReward(i: Int, r: Int): Unit = reward += Tuple2(i, r)
+  
+  def addReward(i: Int, r: Int): Unit = reward += Tuple2(i, reward.getOrElse(i, 0) + r)
   
   def setAction(i: Int, a: Int): Unit = action += Tuple2(i, a)
   
@@ -146,7 +232,10 @@ object TransitionBuilder {
 
 case class Transition(current: S, action: Int, reward: Int, next: S)
 
-class LearningCarnivore(external: External, internal: Internal, velocity: Velocity, val index: Int) extends Carnivore(external, internal, velocity) {
+class LearningCarnivore(external: External, internal: Internal, velocity: Velocity, count: Int, val index: Int)
+  extends Carnivore(external, internal, velocity, count) {
+  
+  override val maxCount = LearningCarnivore.maxCount
   
   override def setExternal(e: External): LearningCarnivore = LearningCarnivore(copy(external = e), index)
   override def setExternal(c: Coordinates, a: Appearance): LearningCarnivore = LearningCarnivore(copy(external = External(c, a)), index)
@@ -154,18 +243,22 @@ class LearningCarnivore(external: External, internal: Internal, velocity: Veloci
   override def setLife(l: Int): LearningCarnivore = LearningCarnivore(copy(internal = Internal(l, internal.water, internal.mineral)), index)
   override def setLife(f: Int => Int): LearningCarnivore = setLife(f(internal.life))
   override def setVelocity(v: Velocity): LearningCarnivore = LearningCarnivore(copy(velocity = v), index)
-  
+  override def decrimentCounter: LearningCarnivore = LearningCarnivore(copy(count = count - 1), index)
+  override def repareCounter: LearningCarnivore = LearningCarnivore(copy(count = maxCount), index)
+    
   override def toString: String = "Learning" + super.toString
 }
 
 object LearningCarnivore {
   
-  def apply(carn: Carnivore): LearningCarnivore = {
-    new LearningCarnivore(carn.external, carn.internal, carn.velocity, IndexMaker.getIndex())
+  val maxCount = 10
+  
+  def fromCarnivore(carn: Carnivore): LearningCarnivore = {
+    new LearningCarnivore(carn.external, carn.internal, carn.velocity, maxCount, IndexMaker.getIndex())
   }
   
   def apply(carn: Carnivore, i: Int): LearningCarnivore = {
-    new LearningCarnivore(carn.external, carn.internal, carn.velocity, i)
+    new LearningCarnivore(carn.external, carn.internal, carn.velocity, carn.count, i)
   }
 }
 

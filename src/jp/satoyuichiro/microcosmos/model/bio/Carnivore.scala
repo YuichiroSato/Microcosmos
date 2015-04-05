@@ -8,7 +8,7 @@ import jp.satoyuichiro.microcosmos.model.learning._
 import scalaz._
 import Scalaz._
 
-case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity)
+case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity, val count: Int)
   extends Animal(external, internal, velocity) {
 
   def evolve: Bio = setExternal(move, external.appearance).setLife(runningCost(velocity.speed) >>> existingCost)
@@ -35,12 +35,18 @@ case class Carnivore(override val external: External, override val internal: Int
 
   def isDead: Boolean = internal.life <= 0
 
+  val maxCount = Carnivore.maxCount
+  
   def chooseAction(world: World): World = {
-    val nextState = Carnivore.nextState(world, this)
-    if (this == nextState) {
-      world
+    if (count < 0) {
+      val nextState = Carnivore.nextState(world, this)
+      if (this == nextState) {
+        world
+      } else {
+        world.updateBio(this, nextState.repareCounter)
+      }
     } else {
-      world.updateBio(this, nextState)
+      world.updateBio(this, decrimentCounter)
     }
   }
   
@@ -50,6 +56,8 @@ case class Carnivore(override val external: External, override val internal: Int
   def setLife(l: Int): Carnivore = copy(internal = Internal(l, internal.water, internal.mineral))
   def setLife(f: Int => Int): Carnivore = setLife(f(internal.life))
   def setVelocity(v: Velocity): Carnivore = copy(velocity = v)
+  def decrimentCounter: Carnivore = copy(count = count - 1)
+  def repareCounter: Carnivore = copy(count = maxCount)
   
 }
 
@@ -61,20 +69,20 @@ object Carnivore {
   val giveBirthCost = 4000
   val learningInterval = 10
   val workingInterval = 2
+  val maxCount = 5
 
   def apply(x: Int, y: Int): Carnivore = {
     val coordinates = Coordinates(x, y, Math.random())
     val appearance = Appearance(12, Color.RED)
     val velocity = Velocity(5 * Math.random(), Math.random() - 0.5)
-    Carnivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity)
+    Carnivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, maxCount)
   }
   
   def empty: Carnivore = {
     val external = External(Coordinates(0,0,0), Appearance(0, Color.RED))
     val internal = Internal(initLife, 0, 0)
     val velocity = Velocity(0, 0)
-    val animal = Carnivore(external, internal, velocity)
-    Carnivore(external, internal, velocity)
+    Carnivore(external, internal, velocity, maxCount)
   }
   
   var strategy: Strategy[Carnivore] = new EmptyStrategy()
@@ -97,6 +105,10 @@ object Carnivore {
   }
   
   val doNothing = 7
+  
+  def randomAction: Int = {
+    (Math.random() * doNothing).toInt + 1
+  }
   
   def action(i: Int, velocity: Velocity): Velocity = {
     i match {
