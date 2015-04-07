@@ -58,6 +58,75 @@ class NeuralNetworkTest {
     assertTrue(dif(result2.output,t2) < 0.1)
   }
   
+  @Test def testNeuralNetwork2D {
+    val nt = NeuralNetwork2D.randomize(NeuralNetwork2D((3,4),(2,3),(4,2)))
+    val input1 = List(
+        List(1.0,1.0,1.0),
+        List(0.0,1.0,0.0),
+        List(0.0,1.0,0.0),
+        List(1.0,1.0,1.0)
+        )
+    
+    val t1 = List(
+        List(1.0,0.5,0.0,1.0),
+        List(0.0,0.5,0.0,0.0)
+        )
+    nt.input(input1)
+    nt.fire()
+    nt.output foreach { l =>
+      l foreach { n =>
+        print(n + " ")
+      }
+      println
+    }
+    
+    var tmp = nt
+    for (_ <- 0 to 10000) {
+      tmp = NeuralNetwork2D.refresh(tmp)
+      tmp.input(input1)
+      tmp.fire()
+      tmp = NeuralNetwork2D.backPropagation(tmp, t1)
+    }
+    val result1 = NeuralNetwork2D.refresh(tmp)
+    result1.input(input1)
+    result1.fire()
+    result1.output foreach { l =>
+      l foreach { n =>
+        print(n + " ")
+      }
+      println
+    }
+
+    val input2 = List(
+        List(0.0,0.0,0.0),
+        List(0.0,0.0,0.0),
+        List(0.0,0.0,0.0),
+        List(0.0,0.0,1.0)
+        )
+    
+    val t2 = List(
+        List(1.0,1.0,1.0,1.0),
+        List(1.0,1.0,1.0,1.0)
+        )
+    
+    tmp = nt
+    for (_ <- 0 to 10000) {
+      tmp = NeuralNetwork2D.refresh(tmp)
+      tmp.input(input2)
+      tmp.fire()
+      tmp = NeuralNetwork2D.backPropagation(tmp, t2)
+    }
+    val result2 = NeuralNetwork2D.refresh(tmp)
+    result2.input(input2)
+    result2.fire()
+    result2.output foreach { l =>
+      l foreach { n =>
+        print(n + " ")
+      }
+      println
+    }
+  }
+  
   @Test def testLayer {
     val n1 = Neuron(List.empty[Bond], 1)
     val n2 = Neuron(List.empty[Bond], 2)

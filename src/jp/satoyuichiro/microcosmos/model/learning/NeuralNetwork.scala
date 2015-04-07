@@ -144,6 +144,11 @@ object Layer {
     from
   }
   
+  def addConnection(from: Layer, to: Layer): Layer = {
+    from.neurons foreach { n => n.addConnection(to) }
+    from
+  }
+  
   def setOutputDelta(to: Layer, traingData: List[Double]): Layer = {
     (to.neurons zip traingData) foreach {
       t => t._1.setDelta((t._1.output - t._2) * Neuron.differential(t._1.getState))
@@ -189,16 +194,133 @@ object Layer {
   }
 }
 
-case class NeuralNetwork2D(layers: List[Layer2D]) {
+case class NeuralNetwork2D(layer2Ds: List[Layer2D]) {
   
+  def fire(): Unit = {
+    layer2Ds foreach { l => l.fire() }
+  }
+  
+  def input(input: List[List[Double]]): Unit = {
+    (layer2Ds.head.layers zip input) foreach { t =>
+      (t._1.neurons zip t._2) foreach { s =>
+        s._1.setState(s._2)
+      } 
+    }
+  }
+  
+  def output: List[List[Double]] = layer2Ds.last.layers map (_.neurons map (_.output))
 }
 
-case class Layer2D(layers: Array[Layer]) {
+object NeuralNetwork2D {
+
+  def apply(xs: (Int,Int)*): NeuralNetwork2D = {
+    val layer2Ds = xs.toList map (t => Layer2D(t))
+    val connected = (layer2Ds zip layer2Ds.tail).map(t => Layer2D.connect(t._1, t._2))
+    NeuralNetwork2D(connected ++ List(layer2Ds.last))
+  }
   
+  def randomize(nt: NeuralNetwork2D): NeuralNetwork2D = {
+    nt.layer2Ds foreach { l2D =>
+      l2D.layers foreach { l =>
+        l.neurons foreach { n =>
+          n.randomize()
+        }
+      }
+    }
+    nt
+  }
+  
+  def refresh(nt: NeuralNetwork2D): NeuralNetwork2D = {
+    nt.layer2Ds foreach { l2D =>
+      l2D.layers foreach { l =>
+        l.neurons foreach { n =>
+          n.refresh
+        }
+      }
+    }
+    nt
+  }
+  
+  def backPropagation(nt: NeuralNetwork2D, traingData: List[List[Double]]): NeuralNetwork2D = {
+    Layer2D.setOutputDelta(nt.layer2Ds.last, traingData)
+    Layer2D.updateStrength(nt.layer2Ds.last)
+    Layer2D.updateBias(nt.layer2Ds.last)
+    nt.layer2Ds.reverse.tail foreach { l2D =>
+      Layer2D.calculateDelta(l2D)
+      Layer2D.updateStrength(l2D)
+      Layer2D.updateBias(l2D)
+    }
+    nt
+  }
+
+}
+
+case class Layer2D(layers: List[Layer]) {
+  
+  def fire(): Unit = {
+    layers foreach { l => l.fire() }
+  }
 }
 
 object Layer2D {
+
+  /*
+   *  x = 6, y = 4
+   *   |0          5
+   * -----------------> x
+   * 0 | o o o o o o
+   *   | o o o o o o
+   *   | o o o o o o
+   * 3 | o o o o o o  
+   *   \/
+   *    y
+   *  
+   */
   
+  def apply(x: Int, y: Int): Layer2D = {
+    Layer2D(List.fill(y)(Layer(x)))
+  }
+  
+  def apply(t: (Int, Int)): Layer2D = {
+    Layer2D(t._1, t._2)
+  }
+  
+  def connect(from: Layer2D, to: Layer2D): Layer2D = {
+    from.layers foreach { l1 => 
+      to.layers foreach { l2 =>
+        Layer.addConnection(l1, l2)
+      }
+    }
+    from
+  }
+  
+  def setOutputDelta(to: Layer2D, traingData: List[List[Double]]): Layer2D = {
+    (to.layers zip traingData) foreach {
+      t => Layer.setOutputDelta(t._1, t._2)
+    }
+    to
+  }
+  
+  def calculateDelta(to: Layer2D): Layer2D = {
+    to.layers foreach { l =>
+      Layer.calculateDelta(l)
+    }
+    to
+  }
+  
+  def updateStrength(to: Layer2D): Layer2D = {
+    to.layers foreach { l =>
+      Layer.updateStrength(l)
+    }
+    to
+  }
+  
+  def updateBias(to: Layer2D): Layer2D = {
+    to.layers foreach { l =>
+      Layer.updateBias(l)
+    }
+    to
+  }
 }
 
 case class Neuron(var bonds: List[Bond], index: Int) {
@@ -224,6 +346,8 @@ case class Neuron(var bonds: List[Bond], index: Int) {
   def addBond(b: Bond): Neuron = copy(bonds = b :: this.bonds)
   
   def connect(l: Layer): Unit = bonds = l.neurons map (n => Bond(n))
+  
+  def addConnection(l: Layer): Unit = bonds ++= l.neurons map (n => Bond(n))
   
   def randomize(): Unit = {
     bias = Math.random()
