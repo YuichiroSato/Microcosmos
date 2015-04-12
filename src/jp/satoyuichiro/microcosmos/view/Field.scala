@@ -17,6 +17,7 @@ import jp.satoyuichiro.microcosmos.controller.Microcosmos
 import jp.satoyuichiro.microcosmos.model.learning.EmptyStrategy
 import jp.satoyuichiro.microcosmos.model.learning.QlearningStrategy
 import jp.satoyuichiro.microcosmos.model.learning.RandomStrategy
+import jp.satoyuichiro.microcosmos.model.learning.PerceptronStrategy
 
 class Field(width: Int, height: Int) extends JPanel {
 
@@ -28,6 +29,7 @@ class Field(width: Int, height: Int) extends JPanel {
     Carnivore.strategy match {
       case s: RandomStrategy => g.drawString("Random strategy", 15, 70)
       case s: QlearningStrategy => g.drawString("Qlearning", 15, 70)
+      case s: PerceptronStrategy => g.drawString("Perceptron", 15, 70)
     }
     world.plants foreach { plant => paintPlant(plant, g) }
     world.carnivores foreach { carnivore => paintCarnivore(carnivore, g) }

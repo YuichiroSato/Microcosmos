@@ -104,7 +104,7 @@ object StateActionValue {
   
   def empty: StateActionValue = StateActionValue(Map.empty[(S, Int), Double], Map.empty[S, Map[Int, Double]], Map.empty[S, Int])
   
-    def deserialize(fileName: String): StateActionValue = {
+  def deserialize(fileName: String): StateActionValue = {
     val file = new File(fileName + ".sav")
     
     if (file.exists()) {

@@ -22,6 +22,9 @@ object Microcosmos extends JFrame with Runnable {
   var world = World.init(fieldWidth, fieldHeight)
   
   var iterationCount = 0
+  
+  val qstrategy = new QlearningStrategy(StateActionValue.deserialize("data/Qlearning10000"))
+  val pstrategy = new PerceptronStrategy(PerceptronStateActionValue.deserialize("data/Perceptron10000"))
 
   def main(args: Array[String]): Unit = {
     init()
@@ -34,20 +37,29 @@ object Microcosmos extends JFrame with Runnable {
     this.add(field)
     this.setVisible(true)
     this.show()
-    Carnivore.setStrategy(new RandomStrategy())
+    Carnivore.setStrategy(qstrategy)
   }
     
   def run() {
     val sleepTime = 25
+    var time = 0
     while(true) {
       world = world.update
-      if (world.isEnd) {
+      if (world.isEnd || 1000 < time) {
         world = World.init(fieldWidth, fieldHeight)
-        val map = StateActionValue.deserialize("Qlearning10000")
-        Carnivore.setStrategy(new QlearningStrategy(map))
+        Carnivore.strategy match {
+          case s: RandomStrategy => Carnivore.setStrategy(qstrategy)
+          case s: QlearningStrategy => Carnivore.setStrategy(pstrategy)
+          case s: PerceptronStrategy =>
+            PerceptronStrategy.clearMemory()
+            Carnivore.setStrategy(qstrategy)
+          case _ =>
+        }
+        time = 0
         iterationCount += 1
       }
       render()
+      time += 1
       Thread.sleep(sleepTime)
     }
   }

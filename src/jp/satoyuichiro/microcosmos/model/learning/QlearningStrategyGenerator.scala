@@ -126,7 +126,7 @@ object LearningWorld {
   
   def evolveLearningCarnivore(carn: LearningCarnivore): LearningCarnivore = {
     val buf = carn.internal.life
-    val newCarn = LearningCarnivore(carn.evolve.asInstanceOf[Carnivore], carn.index)
+    val newCarn = LearningCarnivore(carn.evolve.asInstanceOf[Carnivore])
     TransitionBuilder.setReward(carn.index, newCarn.internal.life - buf)
     if (carn.isDead) {
       TransitionBuilder.addReward(carn.index, -1000)
@@ -232,19 +232,19 @@ object TransitionBuilder {
 
 case class Transition(current: S, action: Int, reward: Int, next: S)
 
-class LearningCarnivore(external: External, internal: Internal, velocity: Velocity, count: Int, val index: Int)
-  extends Carnivore(external, internal, velocity, count) {
+class LearningCarnivore(external: External, internal: Internal, velocity: Velocity, count: Int, index: Int)
+  extends Carnivore(external, internal, velocity, count, index) {
   
   override val maxCount = LearningCarnivore.maxCount
   
-  override def setExternal(e: External): LearningCarnivore = LearningCarnivore(copy(external = e), index)
-  override def setExternal(c: Coordinates, a: Appearance): LearningCarnivore = LearningCarnivore(copy(external = External(c, a)), index)
-  override def setInternal(l: Int, w: Int, m: Int): LearningCarnivore = LearningCarnivore(copy(internal = Internal(l, w, m)), index)
-  override def setLife(l: Int): LearningCarnivore = LearningCarnivore(copy(internal = Internal(l, internal.water, internal.mineral)), index)
+  override def setExternal(e: External): LearningCarnivore = LearningCarnivore(copy(external = e))
+  override def setExternal(c: Coordinates, a: Appearance): LearningCarnivore = LearningCarnivore(copy(external = External(c, a)))
+  override def setInternal(l: Int, w: Int, m: Int): LearningCarnivore = LearningCarnivore(copy(internal = Internal(l, w, m)))
+  override def setLife(l: Int): LearningCarnivore = LearningCarnivore(copy(internal = Internal(l, internal.water, internal.mineral)))
   override def setLife(f: Int => Int): LearningCarnivore = setLife(f(internal.life))
-  override def setVelocity(v: Velocity): LearningCarnivore = LearningCarnivore(copy(velocity = v), index)
-  override def decrimentCounter: LearningCarnivore = LearningCarnivore(copy(count = count - 1), index)
-  override def repareCounter: LearningCarnivore = LearningCarnivore(copy(count = maxCount), index)
+  override def setVelocity(v: Velocity): LearningCarnivore = LearningCarnivore(copy(velocity = v))
+  override def decrimentCounter: LearningCarnivore = LearningCarnivore(copy(count = count - 1))
+  override def repareCounter: LearningCarnivore = LearningCarnivore(copy(count = maxCount))
     
   override def toString: String = "Learning" + super.toString
 }
@@ -257,8 +257,8 @@ object LearningCarnivore {
     new LearningCarnivore(carn.external, carn.internal, carn.velocity, maxCount, IndexMaker.getIndex())
   }
   
-  def apply(carn: Carnivore, i: Int): LearningCarnivore = {
-    new LearningCarnivore(carn.external, carn.internal, carn.velocity, carn.count, i)
+  def apply(carn: Carnivore): LearningCarnivore = {
+    new LearningCarnivore(carn.external, carn.internal, carn.velocity, carn.count, carn.index)
   }
 }
 

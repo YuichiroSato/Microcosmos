@@ -8,7 +8,7 @@ import jp.satoyuichiro.microcosmos.model.learning._
 import scalaz._
 import Scalaz._
 
-case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity, val count: Int)
+case class Carnivore(override val external: External, override val internal: Internal, override val velocity: Velocity, val count: Int, val index: Int)
   extends Animal(external, internal, velocity) {
 
   def evolve: Bio = setExternal(move, external.appearance).setLife(runningCost(velocity.speed) >>> existingCost)
@@ -75,14 +75,14 @@ object Carnivore {
     val coordinates = Coordinates(x, y, Math.random())
     val appearance = Appearance(12, Color.RED)
     val velocity = Velocity(5 * Math.random(), Math.random() - 0.5)
-    Carnivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, maxCount)
+    Carnivore(External(coordinates, appearance), Internal(initLife, 10, 10), velocity, maxCount, IndexMaker.getIndex())
   }
   
   def empty: Carnivore = {
     val external = External(Coordinates(0,0,0), Appearance(0, Color.RED))
     val internal = Internal(initLife, 0, 0)
     val velocity = Velocity(0, 0)
-    Carnivore(external, internal, velocity, maxCount)
+    Carnivore(external, internal, velocity, maxCount, IndexMaker.getIndex())
   }
   
   var strategy: Strategy[Carnivore] = new EmptyStrategy()
